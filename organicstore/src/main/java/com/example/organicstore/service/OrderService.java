@@ -67,14 +67,14 @@ public class OrderService {
         shippingAddress.setPostalCode(orderRequest.getShippingAddress().getPostalCode());
         shippingAddress.setCountry(orderRequest.getShippingAddress().getCountry());
         order.setShippingAddress(shippingAddress);
-
+        shippingAddress.setOrder(order);
         // Calculate order totals
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cart.getItems()) {
             // Check stock
             Product product = cartItem.getProduct();
-            if (product.getStock() < cartItem.getQuantity()) {
+            if (product.getStockQuantity() < cartItem.getQuantity()) {
                 throw new RuntimeException("Insufficient stock for product: " + product.getName());
             }
 
@@ -91,7 +91,7 @@ public class OrderService {
             subtotal = subtotal.add(cartItem.getSubtotal());
 
             // Update product stock
-            product.setStock(product.getStock() - cartItem.getQuantity());
+            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             productRepository.save(product);
         }
 
@@ -207,7 +207,7 @@ public class OrderService {
             if (orderStatus == OrderStatus.CANCELLED) {
                 for (OrderItem item : order.getItems()) {
                     Product product = item.getProduct();
-                    product.setStock(product.getStock() + item.getQuantity());
+                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
                     productRepository.save(product);
                 }
             }
@@ -255,7 +255,7 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.CANCELLED) {
             for (OrderItem item : order.getItems()) {
                 Product product = item.getProduct();
-                product.setStock(product.getStock() + item.getQuantity());
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
                 productRepository.save(product);
             }
         }

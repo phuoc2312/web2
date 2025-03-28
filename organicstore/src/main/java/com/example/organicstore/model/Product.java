@@ -31,7 +31,7 @@ public class Product {
     @Column(unique = true)
     private String slug;
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @NotNull
@@ -47,6 +47,7 @@ public class Product {
     private boolean isNew = false;
 
     private boolean inStock = true;
+    private boolean isFeatured;
 
     private Double rating = 0.0;
 
@@ -64,11 +65,9 @@ public class Product {
 
     private String sku;
 
-    private String unit;  
+    private String unit;
 
     private boolean featured = false;
-
-    
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -76,5 +75,4 @@ public class Product {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    
 }

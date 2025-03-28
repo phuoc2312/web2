@@ -36,11 +36,10 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
 
-    private String shippingAddress;
-
     private String paymentMethod;
 
     private String paymentId;
+    private String notes;
 
     private boolean isPaid = false;
 
@@ -55,4 +54,14 @@ public class Order {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "shipping_address_id")
+    private ShippingAddress shippingAddress;
+
+    private BigDecimal subtotal;
+    private BigDecimal shippingCost;
+    private BigDecimal total;
+    private BigDecimal tax;
+
 }

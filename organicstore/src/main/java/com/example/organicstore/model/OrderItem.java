@@ -28,6 +28,7 @@ public class OrderItem {
     private Product product;
 
     private String productName;
+    private BigDecimal subtotal;
 
     private BigDecimal price;
 

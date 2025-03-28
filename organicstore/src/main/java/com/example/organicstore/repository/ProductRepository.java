@@ -36,7 +36,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p ORDER BY p.rating DESC")
     Page<Product> findTopRatedProducts(Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    @Query("SELECT p FROM Product p WHERE LOWER(p.name) LIKE CONCAT('%', :keyword, '%') OR LOWER(p.description) LIKE CONCAT('%', :keyword, '%')")
     Page<Product> search(@Param("keyword") String keyword, Pageable pageable);
 
 }
