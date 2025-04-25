@@ -1,0 +1,30 @@
+.slider-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+}
+
+.popular-categories h4 {
+    margin: 10px 0;
+}
+
+.popular-categories button {
+    background-color: #0033cc;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    
+}
+.section-footer {
+    background-color: #0033cc; /* Màu nền của footer */
+    color: #fff; /* Màu chữ của footer */
+}

@@ -1,0 +1,4 @@
+.slider-image {
+    height: 400px; /* Chiều cao cố định */
+    object-fit: cover; /* Giữ tỷ lệ ảnh và cắt phần dư */
+}
