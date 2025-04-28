@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers(AppConstants.PUBLIC_URLS).permitAll()
                         .requestMatchers(AppConstants.USER_URLS).hasAnyAuthority("USER", "ADMIN")
                         .requestMatchers(AppConstants.ADMIN_URLS).hasAuthority("ADMIN")
+                        .requestMatchers("/api/public/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(
                         (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
@@ -91,4 +92,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+    
 }

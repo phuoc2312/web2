@@ -1,96 +1,126 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Facebook, Instagram, Twitter, Youtube, MapPin, Phone, Mail } from 'lucide-react';
+import { GET_ALL } from "./../api/apiService";
+import logo from "../assets/images/banners/logo.png";
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        const params = {
+            pageNumber: 0,
+            pageSize: 5,
+            sortBy: "categoryId",
+            sortOrder: "asc",
+        };
+
+        GET_ALL("http://localhost:8080/api/public/categories", params)
+            .then((response) => {
+                // Sửa lại để phù hợp với cấu trúc dữ liệu từ API
+                setCategories(response.content || []);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch categories:", error);
+            });
+    }, []);
 
     return (
-        <footer className="bg-gray-800 text-white py-12">
+        <footer className="bg-gray-50 pt-12 pb-8">
             <div className="container mx-auto px-4">
-                {/* Footer Top */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
-                    {/* Brands */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {/* Company Info */}
                     <div>
-                        <h6 className="text-lg font-semibold text-white mb-4">Thương Hiệu</h6>
+                        <div className="flex items-center mb-4">
+                            <div className="relative h-10 w-10 mr-2">
+                                <Link to="/Home" className="flex items-center flex-shrink-0">
+                                    <img className="h-12" src={logo} alt="MHP Store Logo" />
+                                </Link>
+                            </div>
+                            <span className="text-xl font-bold text-green-600">MHP Store</span>
+                        </div>
+                        <p className="text-gray-600 mb-4">
+                            Tinh hoa kỹ thuật số, hòa quyện cùng cuộc sống để tạo nên trải nghiệm hoàn mỹ!
+                        </p>
+                        <div className="flex space-x-4">
+                            <a href="#" className="text-gray-400 hover:text-green-600">
+                                <Facebook className="h-5 w-5" />
+                            </a>
+                            <a href="#" className="text-gray-400 hover:text-green-600">
+                                <Instagram className="h-5 w-5" />
+                            </a>
+                            <a href="#" className="text-gray-400 hover:text-green-600">
+                                <Twitter className="h-5 w-5" />
+                            </a>
+                            <a href="#" className="text-gray-400 hover:text-green-600">
+                                <Youtube className="h-5 w-5" />
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Quick Links */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4">Liên kết nhanh</h3>
                         <ul className="space-y-2">
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Adidas</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Puma</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Reebok</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Nike</Link></li>
+                            <li><Link to="/about" className="text-gray-600 hover:text-green-600">Giới thiệu</Link></li>
+                            <li><Link to="/ListingGrid" className="text-gray-600 hover:text-green-600">Sản phẩm</Link></li>
+                            <li><Link to="/blog" className="text-gray-600 hover:text-green-600">Tin tức</Link></li>
+                            <li><Link to="/contact" className="text-gray-600 hover:text-green-600">Liên hệ</Link></li>
+                            <li><Link to="/faq" className="text-gray-600 hover:text-green-600">Câu hỏi thường gặp</Link></li>
                         </ul>
                     </div>
-                    {/* Company */}
+
+                    {/* Categories (from API) */}
                     <div>
-                        <h6 className="text-lg font-semibold text-white mb-4">Công Ty</h6>
+                        <h3 className="text-lg font-semibold mb-4">Danh mục sản phẩm</h3>
                         <ul className="space-y-2">
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Về chúng tôi</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Tuyển dụng</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Tìm cửa hàng</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Điều khoản</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Sitemap</Link></li>
+                            {categories.length > 0 ? (
+                                categories.map((category) => (
+                                    <li key={category.categoryId}>
+                                        <Link
+                                            to={`/ListingGrid?categoryId=${category.categoryId}`}
+                                            className="text-gray-600 hover:text-green-600"
+                                        >
+                                            {category.categoryName}
+                                        </Link>
+                                    </li>
+                                ))
+                            ) : (
+                                <li className="text-gray-400 italic">Đang tải danh mục...</li>
+                            )}
                         </ul>
                     </div>
-                    {/* Help */}
+
+                    {/* Contact Info */}
                     <div>
-                        <h6 className="text-lg font-semibold text-white mb-4">Hỗ Trợ</h6>
-                        <ul className="space-y-2">
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Liên hệ</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Hoàn tiền</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Trạng thái đơn hàng</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Thông tin vận chuyển</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Khiếu nại</Link></li>
-                        </ul>
-                    </div>
-                    {/* Account */}
-                    <div>
-                        <h6 className="text-lg font-semibold text-white mb-4">Tài Khoản</h6>
-                        <ul className="space-y-2">
-                            <li><Link to="/login" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Đăng nhập</Link></li>
-                            <li><Link to="/register" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Đăng ký</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Cài đặt tài khoản</Link></li>
-                            <li><Link to="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">Đơn hàng của tôi</Link></li>
-                        </ul>
-                    </div>
-                    {/* Social */}
-                    <div>
-                        <h6 className="text-lg font-semibold text-white mb-4">Mạng Xã Hội</h6>
-                        <ul className="space-y-2">
-                            <li>
-                                <a href="#" className="flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200">
-                                    <i className="fab fa-facebook"></i>
-                                    <span>Facebook</span>
-                                </a>
+                        <h3 className="text-lg font-semibold mb-4">Thông tin liên hệ</h3>
+                        <ul className="space-y-3">
+                            <li className="flex items-start">
+                                <MapPin className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+                                <span className="text-gray-600">123 Đường Xanh, Phường 1, Quận 1, TP. Hồ Chí Minh</span>
                             </li>
-                            <li>
-                                <a href="#" className="flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200">
-                                    <i className="fab fa-twitter"></i>
-                                    <span>Twitter</span>
-                                </a>
+                            <li className="flex items-center">
+                                <Phone className="h-5 w-5 text-green-600 mr-2" />
+                                <span className="text-gray-600">1900 1234</span>
                             </li>
-                            <li>
-                                <a href="#" className="flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200">
-                                    <i className="fab fa-instagram"></i>
-                                    <span>Instagram</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="flex items-center space-x-2 text-gray-300 hover:text-blue-400 transition-colors duration-200">
-                                    <i className="fab fa-youtube"></i>
-                                    <span>Youtube</span>
-                                </a>
+                            <li className="flex items-center">
+                                <Mail className="h-5 w-5 text-green-600 mr-2" />
+                                <span className="text-gray-600">info@organicstore.com</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                {/* Footer Bottom */}
-                <div className="border-t border-gray-700 pt-6 text-center">
-                    <p className="text-gray-300 mb-2">
-                        <Link to="#" className="hover:text-blue-400 transition-colors duration-200">Chính sách bảo mật</Link> -{' '}
-                        <Link to="#" className="hover:text-blue-400 transition-colors duration-200">Điều khoản sử dụng</Link> -{' '}
-                        <Link to="#" className="hover:text-blue-400 transition-colors duration-200">Hướng dẫn pháp lý</Link>
-                    </p>
-                    <p className="text-gray-400">© {currentYear} Công ty ABC. Mọi quyền được bảo lưu.</p>
+                <div className="border-t border-gray-200 mt-8 pt-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center">
+                        <p className="text-gray-600 text-sm mb-4 md:mb-0">© {currentYear} Organic Store. Tất cả quyền được bảo lưu.</p>
+                        <div className="flex space-x-4">
+                            <Link to="/terms" className="text-gray-600 hover:text-green-600 text-sm">Điều khoản dịch vụ</Link>
+                            <Link to="/privacy" className="text-gray-600 hover:text-green-600 text-sm">Chính sách bảo mật</Link>
+                            <Link to="/shipping" className="text-gray-600 hover:text-green-600 text-sm">Chính sách vận chuyển</Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </footer>

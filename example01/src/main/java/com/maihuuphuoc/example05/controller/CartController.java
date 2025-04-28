@@ -69,4 +69,11 @@ public class CartController {
 
         return new ResponseEntity<String>(status, HttpStatus.OK);
     }
+
+    // Thêm vào file CartController.java
+    @PostMapping("/public/users/{email}/carts")
+    public ResponseEntity<CartDTO> createCart(@PathVariable String email) {
+        CartDTO cartDTO = cartService.createNewCart(email);
+        return new ResponseEntity<>(cartDTO, HttpStatus.CREATED);
+    }
 }

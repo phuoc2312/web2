@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { GET_ID, GET_ALL } from "../api/apiService";
 import { toast } from 'react-toastify';
+import { ShoppingCart, ChevronLeft, ChevronRight, Minus, Plus, Heart } from 'lucide-react';
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -9,49 +10,26 @@ const ProductDetail = () => {
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
+    const [isWishlisted, setIsWishlisted] = useState(false);
 
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                // Lấy sản phẩm hiện tại
+                setLoading(true);
                 const response = await GET_ID("products", id);
-                console.log("Product data:", response);
                 setProduct(response);
 
-                // Lấy sản phẩm liên quan (chỉ từ cùng categoryId)
-                let relatedResponse = [];
-                if (response.category && response.category.categoryId) {
-                    console.log(`Fetching related products with categoryId: ${response.category.categoryId}`);
-                    relatedResponse = await GET_ALL(
-                        `http://localhost:8080/api/public/products?pageNumber=1&pageSize=10&sortBy=productId&sortOrder=ASC&categoryId=${response.category.categoryId}`
+                if (response.category?.categoryId) {
+                    const relatedResponse = await GET_ALL(
+                        `products?pageNumber=0&pageSize=4&categoryId=${response.category.categoryId}`
                     );
-                } else {
-                    console.warn("No categoryId found for this product");
-                    setRelatedProducts([]);
-                }
-
-                console.log("Related products raw data:", relatedResponse);
-
-                // Xử lý dữ liệu trả về
-                const products = Array.isArray(relatedResponse.content) 
-                    ? relatedResponse.content 
-                    : Array.isArray(relatedResponse) 
-                        ? relatedResponse 
-                        : [];
-                
-                if (products.length > 0) {
-                    const filteredProducts = products
-                        .filter((item) => String(item.productId) !== String(response.productId))
-                        .slice(0, 4);
-                    console.log("Filtered related products:", filteredProducts);
+                    const filteredProducts = (relatedResponse.content || [])
+                        .filter(item => item.productId !== response.productId);
                     setRelatedProducts(filteredProducts);
-                } else {
-                    console.warn("No valid related products found");
-                    setRelatedProducts([]);
                 }
             } catch (error) {
-                console.error("Không thể lấy dữ liệu:", error);
-                setRelatedProducts([]);
+                console.error("Error fetching product:", error);
+                toast.error("Không thể tải thông tin sản phẩm");
             } finally {
                 setLoading(false);
             }
@@ -59,166 +37,286 @@ const ProductDetail = () => {
         fetchProduct();
     }, [id]);
 
-    const incrementQuantity = () => setQuantity((prev) => prev + 1);
-    const decrementQuantity = () => setQuantity((prev) => Math.max(prev - 1, 1));
+    const incrementQuantity = () => setQuantity(prev => prev + 1);
+    const decrementQuantity = () => setQuantity(prev => Math.max(prev - 1, 1));
 
-    const addToCart = (item, qty = quantity) => {
-        const cartItem = {
-            productId: item.productId,
-            productName: item.productName,
-            price: item.price,
-            image: item.image,
-            quantity: qty,
-        };
+    const addToCart = async (item, qty = 1) => {
+        try {
+            // Lấy thông tin từ localStorage
+            const authEmail = localStorage.getItem("authEmail") || "mai@gmail.com";
+            const authToken = localStorage.getItem("authToken");
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let cartId = localStorage.getItem("cartId");
 
-        const currentCart = JSON.parse(localStorage.getItem("cart")) || [];
-        const existingItemIndex = currentCart.findIndex((cartItem) => cartItem.productId === item.productId);
-        if (existingItemIndex > -1) {
-            currentCart[existingItemIndex].quantity += qty;
-        } else {
-            currentCart.push(cartItem);
+            // Nếu chưa có cartId, tạo giỏ hàng mới
+            if (!cartId) {
+                const createCartResponse = await fetch(`http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`, {
+                    method: "POST",
+                    headers: {
+                        "Accept": "*/*",
+                        "Authorization": `Bearer ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                if (!createCartResponse.ok) {
+                    throw new Error("Không thể tạo giỏ hàng mới");
+                }
+
+                const createCartData = await createCartResponse.json();
+                cartId = createCartData.cartId;
+                localStorage.setItem("cartId", cartId);
+            }
+
+            // Gọi API để thêm/cập nhật sản phẩm vào giỏ hàng
+            const addProductResponse = await fetch(`http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`, {
+                method: "POST",
+                headers: {
+                    "Accept": "*/*",
+                    "Authorization": `Bearer ${authToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({}),
+            });
+
+            if (!addProductResponse.ok) {
+                throw new Error("Không thể thêm sản phẩm vào giỏ hàng");
+            }
+
+            // Cập nhật giỏ hàng cục bộ trong localStorage
+            const cartItem = {
+                productId: item.productId,
+                productName: item.productName,
+                price: item.price,
+                image: item.image,
+                quantity: qty,
+            };
+
+            const existingItemIndex = cart.findIndex((cartItem) => cartItem.productId === item.productId);
+            if (existingItemIndex > -1) {
+                cart[existingItemIndex].quantity += qty;
+            } else {
+                cart.push(cartItem);
+            }
+
+            localStorage.setItem("cart", JSON.stringify(cart));
+
+            // Kích hoạt sự kiện cập nhật giỏ hàng
+            window.dispatchEvent(new Event("cartUpdated"));
+
+            // Hiển thị thông báo thành công
+            toast.success(`${cartItem.productName} đã được thêm vào giỏ hàng!`, {
+                position: "top-right",
+                autoClose: 3000,
+            });
+        } catch (error) {
+            console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
+            toast.error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!", {
+                position: "top-right",
+                autoClose: 3000,
+            });
         }
-
-        localStorage.setItem("cart", JSON.stringify(currentCart));
-        window.dispatchEvent(new Event("cartUpdated"));
-        toast.success(`${cartItem.productName} đã được thêm vào giỏ hàng!`, {
-            position: "top-right",
-            autoClose: 3000,
-        });
+    };
+    const toggleWishlist = () => {
+        setIsWishlisted(!isWishlisted);
+        toast.success(isWishlisted ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích");
     };
 
     if (loading) return (
-        <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500"></div>
-        </div>
-    );
-    if (!product) return (
-        <div className="container mx-auto px-4 py-8 text-center">
-            <p className="text-xl text-gray-600">Không tìm thấy sản phẩm.</p>
+        <div className="flex justify-center items-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
         </div>
     );
 
-    // Xử lý giá hiển thị (ưu tiên price nếu specialPrice âm)
-    const displayPrice = product.specialPrice > 0 ? product.specialPrice : product.price;
+    if (!product) return (
+        <div className="container mx-auto px-4 py-12 text-center">
+            <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Không tìm thấy sản phẩm</h2>
+                <p className="text-gray-600 mb-6">Sản phẩm bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+                <Link
+                    to="/products"
+                    className="inline-block bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors duration-200"
+                >
+                    Quay lại cửa hàng
+                </Link>
+            </div>
+        </div>
+    );
+
+    const displayPrice = product.specialPrice > 0 ? product.specialPrice : product.specialPrice;
+    const discountPercent = product.specialPrice > 0
+        ? Math.round((1 - product.specialPrice / product.price) * 100)
+        : 0;
 
     return (
-        <div className="container mx-auto px-4 py-12 bg-gray-50">
-            {/* Chi tiết sản phẩm */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Hình ảnh sản phẩm */}
-                <div className="relative">
-                    <img
-                        src={`http://localhost:8080/api/public/products/image/${product.image}`}
-                        alt={product.productName}
-                        className="w-full h-[500px] object-cover rounded-xl shadow-lg transition-transform duration-300 hover:scale-105"
-                    />
-                </div>
+        <div className="bg-gray-50 min-h-screen py-12">
+            <div className="container mx-auto px-4">
+                {/* Breadcrumb */}
+                <nav className="flex mb-6" aria-label="Breadcrumb">
+                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                        <li className="inline-flex items-center">
+                            <Link to="/" className="text-gray-700 hover:text-green-600 inline-flex items-center">
+                                <ChevronLeft className="w-4 h-4 mr-1" />
+                                Trang chủ
+                            </Link>
+                        </li>
+                        <li>
+                            <div className="flex items-center">
+                                <ChevronRight className="w-4 h-4 text-gray-400 mx-1" />
+                                <Link to="/products" className="text-gray-700 hover:text-green-600 ml-1">
+                                    Sản phẩm
+                                </Link>
+                            </div>
+                        </li>
+                        <li aria-current="page">
+                            <div className="flex items-center">
+                                <ChevronRight className="w-4 h-4 text-gray-400 mx-1" />
+                                <span className="text-gray-500 ml-1">{product.productName}</span>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
 
-                {/* Thông tin sản phẩm */}
-                <div className="flex flex-col space-y-6">
-                    <h2 className="text-3xl font-bold text-gray-900">{product.productName}</h2>
-                    
-                    {/* Mô tả sản phẩm */}
-                    <div className="text-gray-600 leading-relaxed">
-                        {product.description ? (
-                            <p>{product.description}</p>
-                        ) : (
-                            <p>Không có mô tả cho sản phẩm này.</p>
+                {/* Main Product Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white rounded-xl shadow-sm p-6">
+                    {/* Product Image */}
+                    <div className="relative h-96 w-full overflow-hidden rounded-lg bg-gray-100">
+                        <img
+                            src={`http://localhost:8080/api/public/products/image/${product.image}`}
+                            alt={product.productName}
+                            className="h-full w-full object-contain"
+                        />
+                        {discountPercent > 0 && (
+                            <div className="absolute top-4 left-4 bg-red-500 text-white font-bold px-3 py-1 rounded-full text-sm">
+                                -{discountPercent}%
+                            </div>
                         )}
-                    </div>
-
-                    {/* Giá */}
-                    <div className="space-y-2">
-                        <p className="text-2xl font-semibold text-blue-600">
-                            {(quantity * displayPrice).toLocaleString('vi-VN')} VND
-                        </p>
-                        <p className="text-sm text-gray-500">
-                            Giá mỗi đơn vị: {displayPrice.toLocaleString('vi-VN')} VND
-                        </p>
-                        {product.specialPrice > 0 && product.specialPrice < product.price && (
-                            <p className="text-sm text-gray-500 line-through">
-                                Giá gốc: {product.price.toLocaleString('vi-VN')} VND
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Số lượng và nút thêm vào giỏ hàng */}
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center border rounded-lg">
-                            <button
-                                onClick={decrementQuantity}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-l-lg transition-colors duration-200"
-                            >
-                                −
-                            </button>
-                            <input
-                                type="text"
-                                value={quantity}
-                                readOnly
-                                className="w-16 text-center border-none focus:outline-none"
-                            />
-                            <button
-                                onClick={incrementQuantity}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-r-lg transition-colors duration-200"
-                            >
-                                +
-                            </button>
-                        </div>
                         <button
-                            onClick={() => addToCart(product)}
-                            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center space-x-2"
+                            onClick={toggleWishlist}
+                            className={`absolute top-4 right-4 p-2 rounded-full ${isWishlisted ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
                         >
-                            <i className="fas fa-shopping-cart"></i>
-                            <span>Thêm vào giỏ hàng</span>
+                            <Heart className={`w-6 h-6 ${isWishlisted ? 'fill-current' : ''}`} />
                         </button>
                     </div>
-                </div>
-            </div>
 
-            {/* Sản phẩm liên quan */}
-            <div className="mt-16">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6">Sản phẩm liên quan</h3>
-                {relatedProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                        {relatedProducts.map((relatedProduct) => (
-                            <div key={relatedProduct.productId} className="group relative">
-                                <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
-                                    <Link to={`/product/${relatedProduct.productId}`}>
-                                        <div className="relative overflow-hidden">
-                                            <img
-                                                src={`http://localhost:8080/api/public/products/image/${relatedProduct.image}`}
-                                                alt={relatedProduct.productName}
-                                                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                                            />
-                                        </div>
-                                    </Link>
-                                    <div className="p-4">
-                                        <Link to={`/product/${relatedProduct.productId}`}>
-                                            <h5 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 line-clamp-2 min-h-[48px] transition-colors duration-200">
-                                                {relatedProduct.productName}
-                                            </h5>
-                                        </Link>
-                                        <div className="mt-2">
-                                            <span className="text-lg font-bold text-blue-600">
-                                                {(relatedProduct.specialPrice > 0 ? relatedProduct.specialPrice : relatedProduct.price).toLocaleString('vi-VN')} VND
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                        <button
-                                            onClick={() => addToCart(relatedProduct, 1)}
-                                            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full flex items-center space-x-2 hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
-                                        >
-                                            <i className="fas fa-cart-plus"></i>
-                                            <span>Thêm</span>
-                                        </button>
-                                    </div>
-                                </div>
+                    {/* Product Info */}
+                    <div className="space-y-6">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">{product.productName}</h1>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl font-bold text-red-600">
+                                    {displayPrice.toLocaleString('vi-VN')}₫
+                                </span>
+                                {discountPercent > 0 && (
+                                    <span className="text-lg text-gray-500 line-through">
+                                        {product.price.toLocaleString('vi-VN')}₫
+                                    </span>
+                                )}
                             </div>
-                        ))}
+                            {product.quantity > 0 ? (
+                                <p className="text-green-600 text-sm">Còn hàng ({product.quantity} sản phẩm)</p>
+                            ) : (
+                                <p className="text-red-500 text-sm">Tạm hết hàng</p>
+                            )}
+                        </div>
+
+                        <div className="border-t border-b border-gray-200 py-4">
+                            <p className="text-gray-700">{product.description || "Không có mô tả chi tiết."}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-4">
+                                <div className="flex items-center border rounded-lg">
+                                    <button
+                                        onClick={decrementQuantity}
+                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-l-lg"
+                                    >
+                                        <Minus className="w-4 h-4" />
+                                    </button>
+                                    <span className="w-12 text-center border-none focus:outline-none">
+                                        {quantity}
+                                    </span>
+                                    <button
+                                        onClick={incrementQuantity}
+                                        className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-r-lg"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => addToCart(product)}
+                                    disabled={product.quantity <= 0}
+                                    className={`flex-1 py-3 rounded-lg font-semibold text-white flex items-center justify-center space-x-2 transition-colors duration-200 ${product.quantity > 0
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-gray-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    <ShoppingCart className="w-5 h-5" />
+                                    <span>Thêm vào giỏ hàng</span>
+                                </button>
+                            </div>
+                            <button className="w-full py-3 border border-green-600 text-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors duration-200">
+                                Mua ngay
+                            </button>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                            <div className="flex items-center text-sm text-gray-500 space-x-4">
+                                <span>Danh mục: {product.category?.categoryName || "Không xác định"}</span>
+                                <span>Mã SP: {product.productId}</span>
+                            </div>
+                        </div>
                     </div>
-                ) : (
-                    <p className="text-gray-600">Không có sản phẩm liên quan.</p>
+                </div>
+
+                {/* Related Products */}
+                {relatedProducts.length > 0 && (
+                    <div className="mt-16">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-6">Sản phẩm liên quan</h3>
+                        {relatedProducts.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                                {relatedProducts.map((relatedProduct) => (
+                                    <div key={relatedProduct.productId} className="group relative">
+                                        <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
+                                            <Link to={`/product/${relatedProduct.productId}`}>
+                                                <div className="relative overflow-hidden">
+                                                    <img
+                                                        src={`http://localhost:8080/api/public/products/image/${relatedProduct.image}`}
+                                                        alt={relatedProduct.productName}
+                                                        className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                                                    />
+                                                </div>
+                                            </Link>
+                                            {/* Thông tin sản phẩm */}
+                                            <div className="p-4">
+                                                <Link to={`/product/${product.productId}`}>
+                                                    <h3 className="text-base font-semibold text-gray-800 hover:text-green-600 line-clamp-2 mb-2">
+                                                        {product.productName}
+                                                    </h3>
+                                                </Link>
+
+                                                {/* Giá sản phẩm */}
+                                                <div className="mt-2">
+                                                    <span className="text-lg font-bold text-red-600">
+                                                        {(relatedProduct.specialPrice > 0 ? relatedProduct.specialPrice : relatedProduct.specialPrice).toLocaleString('vi-VN')} VND
+                                                    </span>
+                                                </div>
+
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-600">Không có sản phẩm liên quan.</p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

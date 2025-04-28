@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.maihuuphuoc.example05.entity.Cart;
 import com.maihuuphuoc.example05.entity.CartItem;
 import com.maihuuphuoc.example05.entity.Product;
+import com.maihuuphuoc.example05.entity.User;
 import com.maihuuphuoc.example05.exceptions.APIException;
 import com.maihuuphuoc.example05.exceptions.ResourceNotFoundException;
 import com.maihuuphuoc.example05.payloads.CartDTO;
@@ -17,6 +18,7 @@ import com.maihuuphuoc.example05.payloads.ProductDTO;
 import com.maihuuphuoc.example05.repository.CartItemRepo;
 import com.maihuuphuoc.example05.repository.CartRepo;
 import com.maihuuphuoc.example05.repository.ProductRepo;
+import com.maihuuphuoc.example05.repository.UserRepo;
 import com.maihuuphuoc.example05.service.CartService;
 
 import jakarta.transaction.Transactional;
@@ -176,4 +178,27 @@ public class CartServiceImpl implements CartService {
 
         return "Product " + cartItem.getProduct().getProductName() + " removed from the cart !!!";
     }
+
+    // Thêm vào file CartServiceImpl.java
+    @Autowired
+    private UserRepo userRepo; // Cần thêm repository này
+
+    @Override
+    public CartDTO createNewCart(String email) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+        // Kiểm tra xem user đã có cart chưa
+        if (cartRepo.existsByUser(user)) {
+            throw new APIException("User already has a cart");
+        }
+
+        Cart newCart = new Cart();
+        newCart.setUser(user);
+        newCart.setTotalPrice(0.0);
+        Cart savedCart = cartRepo.save(newCart);
+
+        return modelMapper.map(savedCart, CartDTO.class);
+    }
+    
 }

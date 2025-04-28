@@ -101,7 +101,7 @@ function Register() {
                 name="mobileNumber"
                 className="form-control"
                 placeholder="Mobile Number"
-                type="text"
+type="text"
                 value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
               />

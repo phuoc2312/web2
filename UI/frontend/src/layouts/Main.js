@@ -8,8 +8,11 @@ import Register from './../pages/register/Register';
 import ProductDetail from '../component/productdetail';
 import Cart from '../component/Cart';
 import PromotionPage from '../component/PromotionPage';
-import ProductList from '../component/ProductList';
+import AboutPage from '../pages/About/AboutPage';
 import ProductCategory from '../component/ProductCategory';
+import NewsPage from '../pages/News/NewsPage';
+import ContactPage from '../pages/Contacts/ContactPage';
+import Checkout from '../pages/Checkout/Checkout';;
 const Main = () => (
   <main>
     <Routes>
@@ -23,7 +26,11 @@ const Main = () => (
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/promotions" element={<PromotionPage />} />
-
+      <Route path="/AboutPage" element={<AboutPage />} />
+      <Route path="/blog" element={<NewsPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/checkout" element={<Checkout />} />
+   
     </Routes>
   </main>
 )

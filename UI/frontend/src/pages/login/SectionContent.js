@@ -21,8 +21,10 @@ const SectionContent = () => {
                 const token = response.data['jwt-token'];
                 if (token) {
                     localStorage.setItem('authToken', token);
+                    localStorage.setItem('authEmail', email);
+
                     window.alert("Login successful!");
-                    navigate("/"); // Redirect to the homepage using navigate
+                    navigate("/Home"); // Redirect to the homepage using navigate
                     window.location.reload(); // Refresh the page
                 } else {
                     window.alert("Token not found in response");
@@ -61,7 +63,7 @@ const SectionContent = () => {
                 </div>
             </div>
 
-            <p className="text-center mt-4">Don't have account? <a href="#">Sign up</a></p>
+            <p className="text-center mt-4">Don't have account? <a href="/Register">Sign up</a></p>
             <br />
             <br />
         </section>

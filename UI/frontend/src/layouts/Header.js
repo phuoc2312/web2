@@ -1,32 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import us from "../assets/images/icons/flags/US.png";
-import logo from "../assets/images/logo.svg";
-import { GET_ALL } from './../api/apiService';
+import { Link, useNavigate } from "react-router-dom";
+import { GET_ALL } from "./../api/apiService";
+import logo from "../assets/images/banners/logo.png";
+import CartIcon from "./CartIcon";
 
-function Header() {
+export default function Header() {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState("");
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isPriceDropdownOpen, setIsPriceDropdownOpen] = useState(false);
 
     useEffect(() => {
-        const loggedInStatus = localStorage.getItem('authToken');
+        const loggedInStatus = localStorage.getItem("authToken");
         if (loggedInStatus) {
             setIsLoggedIn(true);
         }
     }, []);
 
-    const handleNangcao = () => {
-        navigate('/Nangcao');
-    };
-
     const handleSubmit = (event) => {
         event.preventDefault();
         if (searchQuery.trim()) {
-            navigate(`/search?query=${encodeURIComponent(searchQuery)}&pageNumber=1&pageSize=10&sortBy=id&sortOrder=ASC`);
+            navigate(
+                `/search?query=${encodeURIComponent(
+                    searchQuery
+                )}&pageNumber=1&pageSize=10&sortBy=id&sortOrder=ASC`
+            );
         }
     };
 
@@ -35,84 +35,92 @@ function Header() {
     };
 
     const handleAllProducts = () => {
-        navigate('/ListingGrid');
+        navigate("/ListingGrid");
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('token');
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("token");
         setIsLoggedIn(false);
-        navigate('/Home');
+        navigate("/Home");
     };
 
     useEffect(() => {
         const params = {
             pageNumber: 0,
             pageSize: 5,
-            sortBy: 'categoryId',
-            sortOrder: 'asc',
+            sortBy: "categoryId",
+            sortOrder: "asc",
         };
 
-        GET_ALL('http://localhost:8080/api/public/categories', params)
+        GET_ALL("http://localhost:8080/api/public/categories", params)
             .then((response) => {
                 setCategories(response.content);
             })
-            .catch(error => {
-                console.error('Failed to fetch categories:', error);
+            .catch((error) => {
+                console.error("Failed to fetch categories:", error);
             });
     }, []);
 
     return (
         <header className="bg-white shadow-sm">
-            {/* Top navigation */}
-            <nav className="hidden md:flex border-b border-gray-200">
-                <div className="container mx-auto px-4 py-2 flex justify-between items-center">
-                    <ul className="flex space-x-4">
-                        <li>
-                            {isLoggedIn ? (
-                                <span
-                                    className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors duration-200"
-                                    onClick={handleLogout}
+            {/* Top bar */}
+            <div className="bg-green-50 py-2 border-b border-gray-200">
+                <div className="container mx-auto px-4 flex justify-between items-center text-sm">
+                    <div className="text-gray-600">
+                        <span className="mr-4">Hotline: 1900 1234</span>
+                        <span>Email: info@organicstore.com</span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        {isLoggedIn ? (
+                            <span
+                                className="text-gray-600 hover:text-green-600 cursor-pointer transition-colors duration-200"
+                                onClick={handleLogout}
+                            >
+                                Đăng xuất
+                            </span>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/Login"
+                                    className="text-gray-600 hover:text-green-600 transition-colors duration-200"
                                 >
-                                    Đăng xuất
-                                </span>
-                            ) : (
-                                <span className="text-gray-600">
-                                    Xin chào, <Link to="/Login" className="text-blue-600 hover:underline">Đăng nhập</Link> hoặc <Link to="/Register" className="text-blue-600 hover:underline">đăng ký</Link>
-                                </span>
-                            )}
-                        </li>
-                        <li><Link to="/promotions" className="text-gray-600 hover:text-blue-600 transition-colors duration-200">Khuyến mãi</Link></li>
-                        <li><Link to="#" className="text-gray-600 hover:text-blue-600 transition-colors duration-200">Bán hàng</Link></li>
-                        <li><Link to="#" className="text-gray-600 hover:text-blue-600 transition-colors duration-200">Trợ giúp</Link></li>
-                    </ul>
-                    <ul className="flex space-x-4">
-                        <li><Link to="#" className="flex items-center text-gray-600 hover:text-blue-600 transition-colors duration-200"><img src={us} alt="us" className="h-4 mr-1" /> Giao hàng tới</Link></li>
-                        <li><Link to="#" className="text-gray-600 hover:text-blue-600 transition-colors duration-200">Cửa hàng của tôi</Link></li>
-                        <li><Link to="#" className="text-gray-600 hover:text-blue-600 transition-colors duration-200"><i className="fa fa-bell"></i></Link></li>
-                        <li><Link to="/cart" className="text-gray-600 hover:text-blue-600 transition-colors duration-200"><i className="fa fa-shopping-cart"></i></Link></li>
-                    </ul>
+                                    Đăng nhập
+                                </Link>
+                                <span className="text-gray-400">|</span>
+                                <Link
+                                    to="/Register"
+                                    className="text-gray-600 hover:text-green-600 transition-colors duration-200"
+                                >
+                                    Đăng ký
+                                </Link>
+                            </>
+                        )}
+                    </div>
                 </div>
-            </nav>
+            </div>
 
-            {/* Main navigation and search */}
-            <div className="container mx-auto px-4 py-4">
-                <div className="flex flex-wrap items-center gap-4">
-                    <Link to="/Home" className="flex-shrink-0">
-                        <img className="h-12" src={logo} alt="Logo" />
+            {/* Main header */}
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-between">
+                    {/* Logo */}
+                    <Link to="/Home" className="flex items-center flex-shrink-0">
+                        <img className="h-24" src={logo} alt="MHP Store Logo" />
+                        <span className="ml-2 text-xl font-bold text-green-600">MHP Store</span>
                     </Link>
 
-                    <div className="flex-grow max-w-2xl">
-                        <form className="flex" onSubmit={handleSubmit}>
+                    {/* Search bar - Desktop */}
+                    <div className="hidden md:flex max-w-2xl mx-auto">
+                        <form className="flex w-full" onSubmit={handleSubmit}>
                             <input
                                 type="text"
-                                className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Tìm kiếm sản phẩm..."
                             />
-                            <select className="border border-gray-300 px-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select className="border border-gray-300 px-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
                                 <option value="">Tất cả loại</option>
                                 {categories.map((category) => (
                                     <option value={category.categoryId} key={category.categoryId}>
@@ -122,29 +130,80 @@ function Header() {
                             </select>
                             <button
                                 type="submit"
-                                className="bg-blue-600 text-white px-6 py-2 rounded-r-md hover:bg-blue-700 transition-colors duration-200"
+                                className="bg-green-600 text-white px-6 py-2 rounded-r-md hover:bg-green-700 transition-colors duration-200"
                             >
                                 Tìm
                             </button>
                         </form>
                     </div>
 
-
-
-                    {/* Mobile icons */}
-                    <div className="md:hidden flex space-x-2">
-                        <Link to="#" className="p-2 text-gray-600 hover:text-blue-600"><i className="fa fa-bell"></i></Link>
-                        <Link to="#" className="p-2 text-gray-600 hover:text-blue-600"><i className="fa fa-user"></i></Link>
-                        <Link to="/cart" className="p-2 text-gray-600 hover:text-blue-600"><i className="fa fa-shopping-cart"></i></Link>
+                    {/* Navigation icons */}
+                    <div className="flex items-center space-x-6">
+                        <Link
+                            to="#"
+                            className="p-2 text-gray-600 hover:text-green-600 md:hidden"
+                            aria-label="Tìm kiếm"
+                        >
+                            <i className="fa fa-search"></i>
+                        </Link>
+                        <Link
+                            to="/account"
+                            className="p-2 text-gray-600 hover:text-green-600 hidden sm:block"
+                            aria-label="Tài khoản"
+                        >
+                            <i className="fa fa-user"></i>
+                        </Link>
+                        <CartIcon />
+                        <Link
+                            to="#"
+                            className="p-2 text-gray-600 hover:text-green-600 hidden sm:block"
+                            aria-label="Thông báo"
+                        >
+                            <i className="fa fa-bell"></i>
+                        </Link>
                     </div>
+                </div>
+
+                {/* Mobile search bar */}
+                <div className="md:hidden mt-4 px-2">
+                    <form className="flex" onSubmit={handleSubmit}>
+                        <input
+                            type="text"
+                            className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Tìm kiếm sản phẩm..."
+                        />
+                        <select className="border border-gray-300 px-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Tất cả loại</option>
+                            {categories.map((category) => (
+                                <option value={category.categoryId} key={category.categoryId}>
+                                    {category.categoryName}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            type="submit"
+                            className="bg-green-600 text-white px-6 py-2 rounded-r-md hover:bg-green-700 transition-colors duration-200"
+                        >
+                            Tìm
+                        </button>
+                    </form>
                 </div>
             </div>
 
-            {/* Bottom navigation */}
-            <nav className="container mx-auto px-4 py-2">
-                <ul className="flex flex-wrap gap-6">
-                    <li><Link to="/Home" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">Trang chủ</Link></li>
 
+            {/* Bottom navigation */}
+            <nav className="container mx-auto px-4 py-2 hidden md:block">
+                <ul className="flex flex-wrap gap-6">
+                    <li>
+                        <Link
+                            to="/Home"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
+                        >
+                            Trang chủ
+                        </Link>
+                    </li>
                     <li
                         className="relative"
                         onMouseEnter={() => setIsDropdownOpen(true)}
@@ -152,7 +211,7 @@ function Header() {
                     >
                         <Link
                             to="/ListingGrid"
-                            className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200 flex items-center"
                         >
                             Danh sách sản phẩm
                             <i className="fa fa-chevron-down ml-1"></i>
@@ -178,33 +237,42 @@ function Header() {
                             </div>
                         )}
                     </li>
-
-                    <li
-                        className="relative"
-                        onMouseEnter={() => setIsPriceDropdownOpen(true)}
-                        onMouseLeave={() => setIsPriceDropdownOpen(false)}
-                    >
+               
+                       
+                    <li>
                         <Link
-                            to="#"
-                            className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 flex items-center"
+                            to="/promotions"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
                         >
-                            Mức giá
-                            <i className="fa fa-chevron-down ml-1"></i>
+                            Khuyến mãi
                         </Link>
-                        {isPriceDropdownOpen && (
-                            <div className="absolute z-10 mt-2 w-48 bg-white shadow-lg rounded-md py-2">
-                                <Link to="/under100000" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dưới 100.000</Link>
-                                <Link to="/under200000" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dưới 200.000</Link>
-                                <Link to="/under300000" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dưới 300.000</Link>
-                            </div>
-                        )}
                     </li>
-
-                    <li><Link to="/promotions" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">Khuyến mãi</Link></li>
+                    <li>
+                        <Link
+                            to="/AboutPage"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
+                        >
+                            Giới thiệu
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            to="/blog"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
+                        >
+                            Tin tức
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            to="/contact"
+                            className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
+                        >
+                            Liên hệ
+                        </Link>
+                    </li>
                 </ul>
             </nav>
         </header>
     );
 }
-
-export default Header;

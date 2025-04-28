@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { GET_ALL } from '../../api/apiService';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 function Items() {
     const [products, setProducts] = useState([]);
-
+    const [quantity, setQuantity] = useState(1);
     useEffect(() => {
-        GET_ALL(`http://localhost:8080/api/public/products?pageNumber=1&pageSize=10&sortBy=id&sortOrder=ASC`)
+        GET_ALL(`http://localhost:8080/api/public/products?pageNumber=1&pageSize=5&sortBy=id&sortOrder=ASC`)
             .then((data) => {
                 const product = data.content;
                 setProducts(product);
@@ -15,39 +16,156 @@ function Items() {
                 console.error("Error fetching products:", error);
             });
     }, []);
-
+    const addToCart = async (item, qty = 1) => {
+        try {
+            // Lấy thông tin từ localStorage
+            const authEmail = localStorage.getItem("authEmail") || "mai@gmail.com";
+            const authToken = localStorage.getItem("authToken");
+            let cart = JSON.parse(localStorage.getItem("cart")) || [];
+            let cartId = localStorage.getItem("cartId");
+    
+            // Nếu chưa có cartId, tạo giỏ hàng mới
+            if (!cartId) {
+                const createCartResponse = await fetch(`http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`, {
+                    method: "POST",
+                    headers: {
+                        "Accept": "*/*",
+                        "Authorization": `Bearer ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                });
+    
+                if (!createCartResponse.ok) {
+                    throw new Error("Không thể tạo giỏ hàng mới");
+                }
+    
+                const createCartData = await createCartResponse.json();
+                cartId = createCartData.cartId;
+                localStorage.setItem("cartId", cartId);
+            }
+    
+            // Gọi API để thêm/cập nhật sản phẩm vào giỏ hàng
+            const addProductResponse = await fetch(`http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`, {
+                method: "POST",
+                headers: {
+                    "Accept": "*/*",
+                    "Authorization": `Bearer ${authToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({}),
+            });
+    
+            if (!addProductResponse.ok) {
+                throw new Error("Không thể thêm sản phẩm vào giỏ hàng");
+            }
+    
+            // Cập nhật giỏ hàng cục bộ trong localStorage
+            const cartItem = {
+                productId: item.productId,
+                productName: item.productName,
+                price: item.price,
+                image: item.image,
+                quantity: qty,
+            };
+    
+            const existingItemIndex = cart.findIndex((cartItem) => cartItem.productId === item.productId);
+            if (existingItemIndex > -1) {
+                cart[existingItemIndex].quantity += qty;
+            } else {
+                cart.push(cartItem);
+            }
+    
+            localStorage.setItem("cart", JSON.stringify(cart));
+    
+            // Kích hoạt sự kiện cập nhật giỏ hàng
+            window.dispatchEvent(new Event("cartUpdated"));
+    
+            // Hiển thị thông báo thành công
+            toast.success(`${cartItem.productName} đã được thêm vào giỏ hàng!`, {
+                position: "top-right",
+                autoClose: 3000,
+            });
+        } catch (error) {
+            console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
+            toast.error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!", {
+                position: "top-right",
+                autoClose: 3000,
+            });
+        }
+    };
     return (
-        <section className="py-8 bg-gray-50">
+        <section className="py-12 bg-gray-50">
             <div className="container mx-auto px-4">
-                <header className="mb-6">
-                    <h4 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
-                        Request for Quotation
-                    </h4>
-                    <div className="w-16 h-1 bg-blue-600 mt-2"></div>
+                <header className="mb-8 flex justify-between items-center">
+                    <h2 className="text-3xl font-bold text-gray-800  tracking-wide">
+                        Sản phẩm nôi bật
+                    </h2>
+
+                    <Link
+                        to="/ListingGrid"
+                        className="border border-green-600 text-green-600 hover:bg-green-50 px-4 py-2 rounded-md transition-colors duration-200"
+                    >
+                        Xem tất cả sản phẩm
+                    </Link>
                 </header>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {products.map((product) => (
-                        <div key={product.id} className="group">
-                            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 group-hover:shadow-lg group-hover:-translate-y-1">
-                                <Link to={`/product/${product.productId}`}>
-                                    <div className="relative overflow-hidden">
-                                        <img 
-                                            src={`http://localhost:8080/api/public/products/image/${product.image}`} 
-                                            alt={product.productName}
-                                            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                                        />
+                        <div key={product.productId} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                            <Link to={`/product/${product.productId}`} className="block relative">
+                                <div className="aspect-w-1 aspect-h-1">
+                                    <img
+                                        src={`http://localhost:8080/api/public/products/image/${product.image}`}
+                                        alt={product.productName}
+                                        className="object-contain w-full h-48 p-2"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = "https://via.placeholder.com/400x400?text=No+Image";
+                                        }}
+                                    />
+                                </div>
+                                {product.discount > 0 && (
+                                    <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        -{product.discount}%
                                     </div>
+                                )}
+                            </Link>
+
+                            <div className="p-4">
+                                <Link to={`/product/${product.productId}`} className="block mb-2">
+                                    <h3 className="text-lg font-semibold text-gray-800 hover:text-green-600 transition-colors duration-200 line-clamp-2">
+                                        {product.productName}
+                                    </h3>
                                 </Link>
-                                <div className="p-4">
-                                    <Link to={`/product/${product.productId}`}>
-                                        <h5 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 line-clamp-2 min-h-[40px]">
-                                            {product.productName}
-                                        </h5>
-                                    </Link>
-                                    <div className="mt-2 text-lg font-semibold text-blue-600">
-                                        {product.price.toLocaleString('vi-VN')} VND
+
+                                <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                        {product.discount > 0 ? (
+                                            <>
+                                                <span className="text-xl font-bold text-red-600">
+                                                    {(product.price * (100 - product.discount) / 100).toLocaleString('vi-VN')}₫
+                                                </span>
+                                                <span className="text-sm text-gray-500 line-through">
+                                                    {product.price.toLocaleString('vi-VN')}₫
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="text-xl font-bold text-green-600">
+                                                {product.price.toLocaleString('vi-VN')}₫
+                                            </span>
+                                        )}
                                     </div>
+
+                                    <button
+                                        onClick={() => addToCart(product)}
+                                        className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center space-x-2 transition-colors duration-200"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                                        </svg>
+                                        <span>Thêm vào giỏ</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -58,4 +176,4 @@ function Items() {
     );
 }
 
-export default Items;
+export default Items;  
