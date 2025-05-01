@@ -14,4 +14,13 @@ public class CartDTO {
     private Long cartId;
     private Double totalPrice = 0.0;
     private List<ProductDTO> products = new ArrayList<>();
+    private String message; // Thêm trường message để lưu thông điệp lỗi
+
+    // Constructor cho trường hợp không tìm thấy giỏ hàng
+    public CartDTO(Long cartId, String message) {
+        this.cartId = cartId;
+        this.message = message;
+        this.totalPrice = 0.0;
+        this.products = new ArrayList<>();
+    }
 }

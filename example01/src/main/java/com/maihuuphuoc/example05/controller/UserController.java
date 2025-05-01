@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.maihuuphuoc.example05.config.AppConstants;
+import com.maihuuphuoc.example05.payloads.CartDTO;
 import com.maihuuphuoc.example05.payloads.UserDTO;
 import com.maihuuphuoc.example05.payloads.UserResponse;
+import com.maihuuphuoc.example05.service.CartService;
 import com.maihuuphuoc.example05.service.UserService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,6 +28,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private CartService cartService;
 
     @GetMapping("/public/users/email/{email}")
     public ResponseEntity<UserDTO> getUserEmail(@PathVariable String email) {
@@ -57,7 +61,19 @@ public class UserController {
 
     @DeleteMapping("/admin/users/{userId}")
     public ResponseEntity<String> deleteUser(@PathVariable Long userId) {
+
         String status = userService.deleteUser(userId);
         return new ResponseEntity<>(status, HttpStatus.OK);
+    }
+
+   
+    @GetMapping("/public/users/{email}/cart")
+    public ResponseEntity<CartDTO> getCartIdByEmail(@PathVariable String email) {
+        UserDTO user = userService.getUserByEmail(email);
+        CartDTO cart = cartService.getCartByEmail(email);
+        if (cart.getCartId() == null) {
+            return new ResponseEntity<>(new CartDTO(null, "Cart not found"), HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(cart, HttpStatus.OK);
     }
 }

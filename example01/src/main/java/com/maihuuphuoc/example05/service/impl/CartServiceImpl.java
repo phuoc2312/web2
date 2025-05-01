@@ -200,5 +200,20 @@ public class CartServiceImpl implements CartService {
 
         return modelMapper.map(savedCart, CartDTO.class);
     }
-    
+
+    @Override
+    public CartDTO getCartByEmail(String email) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        Cart cart = cartRepo.findByUser(user);
+        if (cart == null) {
+            return new CartDTO(null, "Cart not found");
+        }
+        CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
+        List<ProductDTO> products = cart.getCartItems().stream()
+                .map(item -> modelMapper.map(item.getProduct(), ProductDTO.class))
+                .collect(Collectors.toList());
+        cartDTO.setProducts(products);
+        return cartDTO;
+    }
 }

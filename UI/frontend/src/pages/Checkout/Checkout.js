@@ -36,9 +36,9 @@ function Checkout() {
 
     useEffect(() => {
         updateCartFromStorage();
-        window.addEventListener("storage", updateCartFromStorage);
+        window.addEventListener("cartUpdated", updateCartFromStorage);
         return () => {
-            window.removeEventListener("storage", updateCartFromStorage);
+            window.removeEventListener("cartUpdated", updateCartFromStorage);
         };
     }, []);
 
@@ -55,7 +55,6 @@ function Checkout() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
-        // Xóa lỗi khi người dùng nhập
         setErrors({ ...errors, [name]: "" });
     };
 
@@ -68,6 +67,48 @@ function Checkout() {
         return newErrors;
     };
 
+    const placeOrder = async (paymentMethod) => {
+        try {
+            const authEmail = localStorage.getItem("authEmail");
+            const authToken = localStorage.getItem("authToken");
+            const cartId = localStorage.getItem("cartId");
+
+            if (!cartId) {
+                throw new Error("Giỏ hàng không tồn tại. Vui lòng thêm sản phẩm trước!");
+            }
+
+            if (!authToken) {
+                throw new Error("Bạn cần đăng nhập để đặt hàng!");
+            }
+
+            const orderResponse = await fetch(
+                `http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts/${cartId}/payments/${paymentMethod}/order`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Accept": "*/*",
+                        "Authorization": `Bearer ${authToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                }
+            );
+
+            if (!orderResponse.ok) {
+                throw new Error(`Không thể tạo đơn hàng: ${orderResponse.status}`);
+            }
+
+            const orderData = await orderResponse.json();
+            localStorage.removeItem("cart");
+         
+            window.dispatchEvent(new Event("cartUpdated"));
+            return orderData;
+        } catch (error) {
+            console.error("Lỗi khi tạo đơn hàng:", error);
+            throw error;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         const formErrors = validateForm();
@@ -76,57 +117,39 @@ function Checkout() {
             return;
         }
 
-        const order = {
-            customerInfo: {
-                fullName: formData.fullName,
-                address: formData.address,
-                phone: formData.phone,
-                note: formData.note,
-            },
-            cartItems,
-            total: cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
-            paymentMethod: formData.paymentMethod,
-            orderDate: new Date().toISOString(),
-        };
-
         try {
-            // Giả sử gửi đến API /api/orders
-            const response = await fetch("http://localhost:8080/api/orders", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify(order),
-            });
+            const orderData = await placeOrder(formData.paymentMethod);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Xóa giỏ hàng
-            localStorage.removeItem("cart");
-            setCartItems([]);
-            window.dispatchEvent(new Event("cartUpdated"));
-
-            toast.success("Đơn hàng đã được đặt thành công!", {
+            toast.success(`Đơn hàng #${orderData.orderId} đã được tạo thành công!`, {
                 position: "top-right",
                 autoClose: 3000,
             });
 
             navigate("/home");
         } catch (error) {
-            console.error("Lỗi khi đặt hàng:", error);
-            // Lưu vào localStorage nếu API thất bại
+            // Lưu đơn hàng tạm thời vào localStorage nếu API thất bại
+            const order = {
+                customerInfo: {
+                    fullName: formData.fullName,
+                    address: formData.address,
+                    phone: formData.phone,
+                    note: formData.note,
+                },
+                cartItems,
+                total: cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
+                paymentMethod: formData.paymentMethod,
+                orderDate: new Date().toISOString(),
+            };
+
             const orders = JSON.parse(localStorage.getItem("orders")) || [];
             orders.push(order);
             localStorage.setItem("orders", JSON.stringify(orders));
 
             localStorage.removeItem("cart");
-            setCartItems([]);
+            localStorage.removeItem("cartId");
             window.dispatchEvent(new Event("cartUpdated"));
 
-            toast.success("Đơn hàng đã được lưu tạm thời!", {
+            toast.warn("Đơn hàng đã được lưu tạm thời do lỗi kết nối!", {
                 position: "top-right",
                 autoClose: 3000,
             });
@@ -261,6 +284,17 @@ function Checkout() {
                                         className="mr-2"
                                     />
                                     <span>Thanh toán khi nhận hàng (COD)</span>
+                                </div>
+                                <div className="flex items-center mb-2">
+                                    <input
+                                        type="radio"
+                                        name="paymentMethod"
+                                        value="MOMO"
+                                        checked={formData.paymentMethod === "MOMO"}
+                                        onChange={handleInputChange}
+                                        className="mr-2"
+                                    />
+                                    <span>Thanh toán qua MOMO</span>
                                 </div>
                                 <div className="flex items-center">
                                     <input
