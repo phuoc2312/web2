@@ -19,9 +19,9 @@ public class ConfigController {
         return ResponseEntity.ok(configService.createConfig(configDTO));
     }
 
-    @GetMapping("/{key}")
-    public ResponseEntity<ConfigDTO> getConfigByKey(@PathVariable String key) {
-        return ResponseEntity.ok(configService.getConfigByKey(key));
+    @GetMapping("/{id}")
+    public ResponseEntity<ConfigDTO> getConfigById(@PathVariable Long id) {
+        return ResponseEntity.ok(configService.getConfigById(id));
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")

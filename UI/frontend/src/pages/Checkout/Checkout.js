@@ -100,7 +100,7 @@ function Checkout() {
 
             const orderData = await orderResponse.json();
             localStorage.removeItem("cart");
-         
+
             window.dispatchEvent(new Event("cartUpdated"));
             return orderData;
         } catch (error) {
@@ -146,7 +146,7 @@ function Checkout() {
             localStorage.setItem("orders", JSON.stringify(orders));
 
             localStorage.removeItem("cart");
-            localStorage.removeItem("cartId");
+
             window.dispatchEvent(new Event("cartUpdated"));
 
             toast.warn("Đơn hàng đã được lưu tạm thời do lỗi kết nối!", {

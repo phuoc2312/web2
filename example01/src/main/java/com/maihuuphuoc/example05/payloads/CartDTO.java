@@ -13,14 +13,16 @@ import lombok.NoArgsConstructor;
 public class CartDTO {
     private Long cartId;
     private Double totalPrice = 0.0;
+    private Integer quantity = 0; // Tổng số lượng sản phẩm trong giỏ hàng (từ cart_items)
     private List<ProductDTO> products = new ArrayList<>();
-    private String message; // Thêm trường message để lưu thông điệp lỗi
+    private String message;
 
     // Constructor cho trường hợp không tìm thấy giỏ hàng
     public CartDTO(Long cartId, String message) {
         this.cartId = cartId;
         this.message = message;
         this.totalPrice = 0.0;
+        this.quantity = 0;
         this.products = new ArrayList<>();
     }
 }

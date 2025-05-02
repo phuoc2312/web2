@@ -42,80 +42,124 @@ const ProductDetail = () => {
 
     const addToCart = async (item, qty = 1) => {
         try {
-            // Lấy thông tin từ localStorage
-            const authEmail = localStorage.getItem("authEmail") || "mai@gmail.com";
+            // 1. Validate input
+            if (!item?.productId) {
+                throw new Error("Thông tin sản phẩm không hợp lệ");
+            }
+    
+            console.log("[DEBUG] Adding to cart:", { 
+                product: item.productName, 
+                quantity: qty,
+                stock: item.quantity,
+                cartId: localStorage.getItem("cartId"),
+                user: localStorage.getItem("authEmail") 
+            });
+    
+            // 2. Validate quantity
+            if (qty <= 0) throw new Error("Số lượng phải lớn hơn 0");
+            if (qty > item.quantity) {
+                throw new Error(`Số lượng vượt quá tồn kho (còn ${item.quantity})`);
+            }
+    
+            // 3. Get user session
+            const authEmail = localStorage.getItem("authEmail") || "guest";
             const authToken = localStorage.getItem("authToken");
             let cart = JSON.parse(localStorage.getItem("cart")) || [];
             let cartId = localStorage.getItem("cartId");
-
-            // Nếu chưa có cartId, tạo giỏ hàng mới
+    
+            // 4. Create new cart if needed
             if (!cartId) {
-                const createCartResponse = await fetch(`http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`, {
-                    method: "POST",
-                    headers: {
-                        "Accept": "*/*",
-                        "Authorization": `Bearer ${authToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({}),
-                });
-
-                if (!createCartResponse.ok) {
-                    throw new Error("Không thể tạo giỏ hàng mới");
-                }
-
-                const createCartData = await createCartResponse.json();
-                cartId = createCartData.cartId;
+                const response = await fetch(
+                    `http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${authToken}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+    
+                if (!response.ok) throw new Error("Tạo giỏ hàng thất bại");
+                
+                const data = await response.json();
+                cartId = data.cartId;
                 localStorage.setItem("cartId", cartId);
+                console.log("[DEBUG] New cart created:", cartId);
             }
-
-            // Gọi API để thêm/cập nhật sản phẩm vào giỏ hàng
-            const addProductResponse = await fetch(`http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`, {
-                method: "POST",
-                headers: {
-                    "Accept": "*/*",
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({}),
-            });
-
-            if (!addProductResponse.ok) {
-                throw new Error("Không thể thêm sản phẩm vào giỏ hàng");
-            }
-
-            // Cập nhật giỏ hàng cục bộ trong localStorage
-            const cartItem = {
-                productId: item.productId,
-                productName: item.productName,
-                price: item.price,
-                image: item.image,
-                quantity: qty,
-            };
-
-            const existingItemIndex = cart.findIndex((cartItem) => cartItem.productId === item.productId);
-            if (existingItemIndex > -1) {
-                cart[existingItemIndex].quantity += qty;
+    
+            // 5. Add to cart API
+            const apiResponse = await fetch(
+                `http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`,
+                {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${authToken}` },
+                }
+            );
+    
+            if (!apiResponse.ok) throw new Error("Thêm vào giỏ hàng thất bại");
+    
+            // 6. Update local cart
+            const existingIndex = cart.findIndex(i => i.productId === item.productId);
+            const productDisplayName = item.productName.length > 20 
+                ? `${item.productName.substring(0, 20)}...` 
+                : item.productName;
+    
+            if (existingIndex >= 0) {
+                const newQty = cart[existingIndex].quantity + qty;
+                if (newQty > item.quantity) {
+                    throw new Error(`Giỏ hàng đã có ${cart[existingIndex].quantity} sản phẩm, không thể thêm ${qty}`);
+                }
+                cart[existingIndex].quantity = newQty;
             } else {
-                cart.push(cartItem);
+                cart.push({
+                    ...item,
+                    quantity: qty,
+                    stock: item.quantity
+                });
             }
-
+    
             localStorage.setItem("cart", JSON.stringify(cart));
-
-            // Kích hoạt sự kiện cập nhật giỏ hàng
-            window.dispatchEvent(new Event("cartUpdated"));
-
-            // Hiển thị thông báo thành công
-            toast.success(`${cartItem.productName} đã được thêm vào giỏ hàng!`, {
-                position: "top-right",
-                autoClose: 3000,
-            });
+    
+            // 7. Show success message with proper quantity
+            toast.success(
+                <div>
+                    <div className="font-bold">✅ Thêm vào giỏ hàng thành công</div>
+                    <div>{productDisplayName}</div>
+                    <div>Số lượng: <span className="font-bold">{qty}</span></div>
+                    {item.specialPrice > 0 && (
+                        <div className="text-green-600">
+                            Giá: {item.specialPrice.toLocaleString("vi-VN")}₫
+                        </div>
+                    )}
+                </div>, 
+                {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                }
+            );
+    
+            // 8. Sync with server and update UI
+            window.dispatchEvent(new CustomEvent("cartUpdated", {
+                detail: { productId: item.productId, quantity: qty }
+            }));
+    
         } catch (error) {
-            console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
-            toast.error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            console.error("[ERROR] addToCart:", error);
+            toast.error(
+                <div>
+                    <div className="font-bold">❌ Thêm vào giỏ thất bại</div>
+                    <div>{error.message}</div>
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 3000,
+                }
+            );
         }
     };
     const toggleWishlist = () => {

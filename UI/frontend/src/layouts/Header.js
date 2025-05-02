@@ -38,11 +38,11 @@ export default function Header() {
         navigate("/ListingGrid");
     };
 
+
     const handleLogout = () => {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("token");
+        localStorage.clear(); // Xóa toàn bộ dữ liệu trong localStorage
         setIsLoggedIn(false);
+        window.dispatchEvent(new Event("logout")); // Dispatch sự kiện logout
         navigate("/Home");
     };
 
@@ -237,8 +237,8 @@ export default function Header() {
                             </div>
                         )}
                     </li>
-               
-                       
+
+
                     <li>
                         <Link
                             to="/promotions"

@@ -3,8 +3,10 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { GET_ALL, GET_ID } from "../../api/apiService";
 import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
+
 const SectionContent = () => {
-    const [products, setProducts] = useState([]);
+    const [allProducts, setAllProducts] = useState([]); // Lưu tất cả sản phẩm
+    const [products, setProducts] = useState([]); // Sản phẩm hiển thị trên trang hiện tại
     const [categories, setCategories] = useState(null);
     const [allCategories, setAllCategories] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
@@ -17,7 +19,7 @@ const SectionContent = () => {
     const queryParams = new URLSearchParams(location.search);
     const currentPage = parseInt(queryParams.get("page")) || 1;
     const categoryId = queryParams.get("categoryId");
-    const numItems = 8;
+    const numItems = 5;
 
     // Hàm xử lý phân trang
     const handlePageChange = (page) => {
@@ -27,46 +29,20 @@ const SectionContent = () => {
     const handlePrevious = () => currentPage > 1 && handlePageChange(currentPage - 1);
     const handleNext = () => currentPage < totalPages && handlePageChange(currentPage + 1);
 
+    // Render số trang - đơn giản hiển thị tất cả các trang
     const renderPageNumbers = () => {
         const pageNumbers = [];
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-        if (endPage - startPage + 1 < maxVisiblePages) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-
-        if (startPage > 1) {
+        for (let i = 1; i <= totalPages; i++) {
             pageNumbers.push(
-                <li key={1} className={`page-item ${currentPage === 1 ? "active" : ""}`}>
-                    <button className="page-link" onClick={() => handlePageChange(1)}>1</button>
-                </li>
-            );
-            if (startPage > 2) {
-                pageNumbers.push(<li key="start-ellipsis" className="page-item disabled"><span className="page-link">...</span></li>);
-            }
-        }
-
-        for (let i = startPage; i <= endPage; i++) {
-            pageNumbers.push(
-                <li key={i} className={`page-item ${currentPage === i ? "active" : ""}`}>
-                    <button className="page-link" onClick={() => handlePageChange(i)}>{i}</button>
-                </li>
+                <button
+                    key={i}
+                    onClick={() => handlePageChange(i)}
+                    className={`px-3 py-1 border ${i === currentPage ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                >
+                    {i}
+                </button>
             );
         }
-
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                pageNumbers.push(<li key="end-ellipsis" className="page-item disabled"><span className="page-link">...</span></li>);
-            }
-            pageNumbers.push(
-                <li key={totalPages} className={`page-item ${currentPage === totalPages ? "active" : ""}`}>
-                    <button className="page-link" onClick={() => handlePageChange(totalPages)}>{totalPages}</button>
-                </li>
-            );
-        }
-
         return pageNumbers;
     };
 
@@ -77,37 +53,24 @@ const SectionContent = () => {
 
     const handleSortChange = (e) => {
         setSortOption(e.target.value);
-        // Thêm logic sắp xếp sản phẩm ở đây
     };
 
     // Fetch danh mục
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                // Thêm tham số phân trang nếu API yêu cầu
                 const params = {
                     pageNumber: 0,
-                    pageSize: 100, // Lấy nhiều danh mục
+                    pageSize: 100,
                     sortBy: "categoryId",
                     sortOrder: "asc"
                 };
 
                 const res = await GET_ALL("categories", params);
-                console.log("Categories API Response:", res); // Debug
-
-                // Xử lý nhiều định dạng response khác nhau
-                let categoriesData = [];
-                if (Array.isArray(res)) {
-                    categoriesData = res;
-                } else if (res?.content && Array.isArray(res.content)) {
-                    categoriesData = res.content;
-                } else if (res?.data && Array.isArray(res.data)) {
-                    categoriesData = res.data;
-                }
-
-                console.log("Extracted Categories:", categoriesData); // Debug
+                let categoriesData = Array.isArray(res) ? res :
+                    res?.content && Array.isArray(res.content) ? res.content :
+                    res?.data && Array.isArray(res.data) ? res.data : [];
                 setAllCategories(categoriesData);
-
             } catch (err) {
                 console.error("Lỗi lấy danh mục:", err);
                 setAllCategories([]);
@@ -116,20 +79,22 @@ const SectionContent = () => {
 
         fetchCategories();
     }, []);
-    // Fetch sản phẩm
+
+    // Fetch tất cả sản phẩm một lần
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const params = {
-                pageNumber: currentPage - 1,
-                pageSize: numItems,
-                sortBy: sortOption === "newest" ? "productId" :
-                    sortOption === "price-asc" ? "price" :
-                        sortOption === "price-desc" ? "price" : "productId",
-                sortOrder: sortOption === "price-desc" ? "desc" : "asc",
-            };
-
             try {
+                // Tham số để lấy tất cả sản phẩm
+                const params = {
+                    pageNumber: 0, // Lấy từ trang đầu tiên
+                    pageSize: 1000, // Lấy số lượng lớn để có tất cả sản phẩm
+                    sortBy: sortOption === "newest" ? "productId" :
+                        sortOption === "price-asc" ? "price" :
+                            sortOption === "price-desc" ? "price" : "productId",
+                    sortOrder: sortOption === "price-desc" ? "desc" : "asc",
+                };
+
                 let productResponse;
                 if (categoryId) {
                     productResponse = await GET_ALL(`categories/${categoryId}/products`, params);
@@ -140,95 +105,154 @@ const SectionContent = () => {
                     setCategories({ categoryName: "Tất cả sản phẩm" });
                 }
 
-                setProducts(productResponse.content || []);
-                setTotalPages(productResponse.totalPages || 1);
+                // Lưu tất cả sản phẩm vào state
+                const allProductsData = productResponse.content || [];
+                setAllProducts(allProductsData);
+                
+                // Tính toán tổng số trang
+                setTotalPages(Math.ceil(allProductsData.length / numItems));
+                
             } catch (error) {
                 console.error("Failed to fetch data:", error);
+                toast.error("Lỗi khi tải dữ liệu sản phẩm");
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [currentPage, categoryId, sortOption]);
+    }, [categoryId, sortOption]);
+
+    // Cắt sản phẩm hiển thị theo trang hiện tại
+    useEffect(() => {
+        const startIndex = (currentPage - 1) * numItems;
+        const endIndex = startIndex + numItems;
+        setProducts(allProducts.slice(startIndex, endIndex));
+    }, [currentPage, allProducts]);
+
     const addToCart = async (item, qty = 1) => {
         try {
-            // Lấy thông tin từ localStorage
-            const authEmail = localStorage.getItem("authEmail") || "mai@gmail.com";
+            if (!item?.productId) {
+                throw new Error("Thông tin sản phẩm không hợp lệ");
+            }
+
+            // Kiểm tra đăng nhập
+            const authEmail = localStorage.getItem("authEmail");
             const authToken = localStorage.getItem("authToken");
+            if (!authEmail || !authToken) {
+                toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.", {
+                    position: "top-right",
+                    autoClose: 3000,
+                });
+                navigate("/Login");
+                return;
+            }
+
+            // Kiểm tra số lượng
+            if (qty <= 0) throw new Error("Số lượng phải lớn hơn 0");
+            if (qty > item.quantity) {
+                throw new Error(`Số lượng vượt quá tồn kho (còn ${item.quantity})`);
+            }
+
+            // Xử lý giỏ hàng
             let cart = JSON.parse(localStorage.getItem("cart")) || [];
             let cartId = localStorage.getItem("cartId");
 
-            // Nếu chưa có cartId, tạo giỏ hàng mới
+            // Tạo giỏ hàng mới nếu cần
             if (!cartId) {
-                const createCartResponse = await fetch(`http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`, {
-                    method: "POST",
-                    headers: {
-                        "Accept": "*/*",
-                        "Authorization": `Bearer ${authToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({}),
-                });
+                const response = await fetch(
+                    `http://localhost:8080/api/public/users/${encodeURIComponent(authEmail)}/carts`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${authToken}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
 
-                if (!createCartResponse.ok) {
-                    throw new Error("Không thể tạo giỏ hàng mới");
-                }
+                if (!response.ok) throw new Error("Tạo giỏ hàng thất bại");
 
-                const createCartData = await createCartResponse.json();
-                cartId = createCartData.cartId;
+                const data = await response.json();
+                cartId = data.cartId;
                 localStorage.setItem("cartId", cartId);
             }
 
-            // Gọi API để thêm/cập nhật sản phẩm vào giỏ hàng
-            const addProductResponse = await fetch(`http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`, {
-                method: "POST",
-                headers: {
-                    "Accept": "*/*",
-                    "Authorization": `Bearer ${authToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({}),
-            });
+            // Thêm vào giỏ hàng API
+            const apiResponse = await fetch(
+                `http://localhost:8080/api/public/carts/${cartId}/products/${item.productId}/quantity/${qty}`,
+                {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${authToken}` },
+                }
+            );
 
-            if (!addProductResponse.ok) {
-                throw new Error("Không thể thêm sản phẩm vào giỏ hàng");
-            }
+            if (!apiResponse.ok) throw new Error("Thêm vào giỏ hàng thất bại");
 
-            // Cập nhật giỏ hàng cục bộ trong localStorage
-            const cartItem = {
-                productId: item.productId,
-                productName: item.productName,
-                price: item.price,
-                image: item.image,
-                quantity: qty,
-            };
+            // Cập nhật giỏ hàng local
+            const existingIndex = cart.findIndex(i => i.productId === item.productId);
+            const productDisplayName = item.productName.length > 20
+                ? `${item.productName.substring(0, 20)}...`
+                : item.productName;
 
-            const existingItemIndex = cart.findIndex((cartItem) => cartItem.productId === item.productId);
-            if (existingItemIndex > -1) {
-                cart[existingItemIndex].quantity += qty;
+            if (existingIndex >= 0) {
+                const newQty = cart[existingIndex].quantity + qty;
+                if (newQty > item.quantity) {
+                    throw new Error(`Giỏ hàng đã có ${cart[existingIndex].quantity} sản phẩm, không thể thêm ${qty}`);
+                }
+                cart[existingIndex].quantity = newQty;
             } else {
-                cart.push(cartItem);
+                cart.push({
+                    ...item,
+                    quantity: qty,
+                    stock: item.quantity
+                });
             }
 
             localStorage.setItem("cart", JSON.stringify(cart));
 
-            // Kích hoạt sự kiện cập nhật giỏ hàng
-            window.dispatchEvent(new Event("cartUpdated"));
-
             // Hiển thị thông báo thành công
-            toast.success(`${cartItem.productName} đã được thêm vào giỏ hàng!`, {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            toast.success(
+                <div>
+                    <div className="font-bold">✅ Thêm vào giỏ hàng thành công</div>
+                    <div>{productDisplayName}</div>
+                    <div>Số lượng: <span className="font-bold">{qty}</span></div>
+                    {item.specialPrice > 0 && (
+                        <div className="text-green-600">
+                            Giá: {item.specialPrice.toLocaleString("vi-VN")}₫
+                        </div>
+                    )}
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                }
+            );
+
+            // Cập nhật UI
+            window.dispatchEvent(new CustomEvent("cartUpdated", {
+                detail: { productId: item.productId, quantity: qty }
+            }));
+
         } catch (error) {
-            console.error("Lỗi khi thêm sản phẩm vào giỏ hàng:", error);
-            toast.error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng!", {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            console.error("[ERROR] addToCart:", error);
+            toast.error(
+                <div>
+                    <div className="font-bold">❌ Thêm vào giỏ thất bại</div>
+                    <div>{error.message}</div>
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 3000,
+                }
+            );
         }
     };
+
     return (
         <section className="py-12 bg-gray-50">
             <div className="container mx-auto px-4">
@@ -290,57 +314,60 @@ const SectionContent = () => {
                     </div>
                 ) : products.length > 0 ? (
                     <>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {products.map(product => (
-                                <div key={product.productId} className="bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
-                                    {/* Hình ảnh sản phẩm */}
-                                    <Link to={`/product/${product.productId}`}>
-                                        <div className="relative overflow-hidden">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {products.map((product) => (
+                                <div key={product.productId} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+                                    <Link to={`/product/${product.productId}`} className="block relative">
+                                        <div className="aspect-w-1 aspect-h-1">
                                             <img
                                                 src={`http://localhost:8080/api/public/products/image/${product.image}`}
                                                 alt={product.productName}
-                                                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                                                className="object-contain w-full h-48 p-2"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = "https://via.placeholder.com/400x400?text=No+Image";
+                                                }}
                                             />
                                         </div>
+                                        {product.discount > 0 && (
+                                            <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                -{product.discount}%
+                                            </div>
+                                        )}
                                     </Link>
 
-
-                                    {/* Thông tin sản phẩm */}
                                     <div className="p-4">
-                                        <Link to={`/product/${product.productId}`}>
-                                            <h3 className="text-base font-semibold text-gray-800 hover:text-green-600 line-clamp-2 mb-2">
+                                        <Link to={`/product/${product.productId}`} className="block mb-2">
+                                            <h3 className="text-lg font-semibold text-gray-800 hover:text-green-600 transition-colors duration-200 line-clamp-2">
                                                 {product.productName}
                                             </h3>
                                         </Link>
 
-                                        {/* Giá sản phẩm */}
-                                        <div className="mt-2">
-                                            {product.discount > 0 ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-lg font-bold text-green-600">
-                                                        {(product.price * (100 - product.discount) / 100).toLocaleString('vi-VN')}₫
-                                                    </span>
-                                                    <span className="text-sm text-gray-500 line-through">
+                                        <div className="flex flex-col space-y-2">
+                                            <div className="flex items-center space-x-2">
+                                                {product.discount > 0 ? (
+                                                    <>
+                                                        <span className="text-xl font-bold text-red-600">
+                                                            {(product.price * (100 - product.discount) / 100).toLocaleString('vi-VN')}₫
+                                                        </span>
+                                                        <span className="text-sm text-gray-500 line-through">
+                                                            {product.price.toLocaleString('vi-VN')}₫
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xl font-bold text-green-600">
                                                         {product.price.toLocaleString('vi-VN')}₫
                                                     </span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-lg font-bold text-green-600">
-                                                    {product.price.toLocaleString('vi-VN')}₫
-                                                </span>
-                                            )}
-                                        </div>
+                                                )}
+                                            </div>
 
-                                        {/* Nút hành động */}
-                                        <div className="mt-4 flex justify-between items-center">
                                             <button
                                                 onClick={() => addToCart(product)}
-                                                className="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md text-sm flex items-center gap-1 transition-colors duration-200"
+                                                className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md flex items-center justify-center space-x-2 transition-colors duration-200"
                                             >
-                                                <i className="fas fa-shopping-cart"></i>
-                                                <span>Thêm vào giỏ hàng</span>
+                                                <ShoppingCart className="w-5 h-5" />
+                                                <span>Thêm vào giỏ</span>
                                             </button>
-
                                         </div>
                                     </div>
                                 </div>
@@ -349,28 +376,26 @@ const SectionContent = () => {
 
                         {/* Phân trang */}
                         {totalPages > 1 && (
-                            <div className="mt-10 flex justify-center">
-                                <nav className="inline-flex rounded-md shadow-sm">
-                                    <button
-                                        onClick={handlePrevious}
-                                        disabled={currentPage === 1}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`}
-                                    >
-                                        <ChevronLeft className="h-5 w-5" />
-                                    </button>
+                            <div className="mt-10 flex justify-center items-center space-x-1">
+                                <button
+                                    onClick={handlePrevious}
+                                    disabled={currentPage === 1}
+                                    className={`p-2 rounded-md ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
 
-                                    <div className="hidden sm:flex">
-                                        {renderPageNumbers()}
-                                    </div>
+                                <div className="flex space-x-1">
+                                    {renderPageNumbers()}
+                                </div>
 
-                                    <button
-                                        onClick={handleNext}
-                                        disabled={currentPage === totalPages}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`}
-                                    >
-                                        <ChevronRight className="h-5 w-5" />
-                                    </button>
-                                </nav>
+                                <button
+                                    onClick={handleNext}
+                                    disabled={currentPage === totalPages}
+                                    className={`p-2 rounded-md ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
                             </div>
                         )}
                     </>

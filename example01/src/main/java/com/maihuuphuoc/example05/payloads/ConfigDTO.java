@@ -9,9 +9,11 @@ import java.time.LocalDateTime;
 @Setter
 public class ConfigDTO {
     private Long id;
-    private String key;
-    private String value;
-    private String description;
+    private String siteName;
+    private String email;
+    private String phone;
+    private String address;
+    private String hotline;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

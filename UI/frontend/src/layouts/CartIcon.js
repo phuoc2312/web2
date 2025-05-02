@@ -1,45 +1,70 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { GET_ALL } from "./../api/apiService";
 
 function CartIcon() {
     const [cartQuantity, setCartQuantity] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Hàm làm phẳng dữ liệu từ localStorage
-    const flattenCartItems = (data) => {
-        if (!data || !Array.isArray(data)) return [];
-        return data.map((item) => ({
-            id: item.productId || item.id,
-            productName: item.productName,
-            price: item.price,
-            image: item.image,
-            quantity: item.quantity,
-        }));
+    // Hàm lấy authEmail và cartId từ localStorage
+    const getUserCredentials = () => {
+        const emailId = localStorage.getItem("authEmail");
+        const cartId = localStorage.getItem("cartId");
+        if (!emailId || !cartId) {
+            return null;
+        }
+        return { emailId, cartId };
     };
 
-    // Tính tổng số lượng sản phẩm
-    const calculateTotalQuantity = () => {
-        const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-        const flattenedCart = flattenCartItems(storedCart);
-        return flattenedCart.reduce((total, item) => total + item.quantity, 0);
+    // Hàm gọi API để lấy dữ liệu giỏ hàng
+    const fetchCartQuantity = async () => {
+        const credentials = getUserCredentials();
+        if (!credentials) {
+            setCartQuantity(0);
+            return;
+        }
+
+        const { emailId, cartId } = credentials;
+        setIsLoading(true);
+
+        try {
+            const response = await GET_ALL(
+                `http://localhost:8080/api/public/users/${encodeURIComponent(emailId)}/carts/${cartId}`,
+                {}
+            );
+            const totalQuantity = response.quantity || 
+                (response.products ? 
+                    response.products.reduce((total, item) => total + (item.cartItemQuantity || 0), 0) : 
+                    0);
+            setCartQuantity(totalQuantity);
+        } catch (error) {
+            console.error(`Failed to fetch cart for email ${emailId}, cartId ${cartId}:`, error);
+            setCartQuantity(0);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    // Cập nhật số lượng từ localStorage
-    const updateCartQuantity = () => {
-        const totalQuantity = calculateTotalQuantity();
-        setCartQuantity(totalQuantity);
+    // Xử lý khi đăng xuất
+    const handleLogout = () => {
+        setCartQuantity(0);
     };
 
     useEffect(() => {
-        // Cập nhật số lượng khi component mount
-        updateCartQuantity();
+        // Lấy số lượng khi component mount
+        fetchCartQuantity();
 
-        // Lắng nghe sự kiện storage và cartUpdated
-        window.addEventListener("storage", updateCartQuantity);
-        window.addEventListener("cartUpdated", updateCartQuantity);
+        // Lắng nghe sự kiện cartUpdated
+        window.addEventListener("cartUpdated", fetchCartQuantity);
+        // Lắng nghe sự kiện logout
+        window.addEventListener("logout", handleLogout);
+        // Lắng nghe sự kiện storage
+        window.addEventListener("storage", fetchCartQuantity);
 
         return () => {
-            window.removeEventListener("storage", updateCartQuantity);
-            window.removeEventListener("cartUpdated", updateCartQuantity);
+            window.removeEventListener("cartUpdated", fetchCartQuantity);
+            window.removeEventListener("logout", handleLogout);
+            window.removeEventListener("storage", fetchCartQuantity);
         };
     }, []);
 
@@ -50,7 +75,7 @@ function CartIcon() {
             aria-label="Giỏ hàng"
         >
             <i className="fa fa-shopping-cart"></i>
-            {cartQuantity > 0 && (
+            {!isLoading && cartQuantity > 0 && (
                 <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                     {cartQuantity}
                 </span>

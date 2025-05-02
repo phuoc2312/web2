@@ -15,13 +15,20 @@ public class Config {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String key;
+    @Column(name = "site_name", nullable = false)
+    private String siteName;
 
-    @Column(nullable = false)
-    private String value;
+    @Column(name = "email", nullable = false)
+    private String email;
 
-    private String description;
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "address")
+    private String address;
+
+    @Column(name = "hotline")
+    private String hotline;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

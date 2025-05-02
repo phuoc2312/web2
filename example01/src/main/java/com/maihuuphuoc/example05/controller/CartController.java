@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.maihuuphuoc.example05.exceptions.APIException;
+import com.maihuuphuoc.example05.exceptions.ResourceNotFoundException;
 import com.maihuuphuoc.example05.payloads.CartDTO;
 import com.maihuuphuoc.example05.service.CartService;
 
@@ -31,11 +33,14 @@ public class CartController {
     private CartService cartService;
 
     @PostMapping("/public/carts/{cartId}/products/{productId}/quantity/{quantity}")
-    public ResponseEntity<CartDTO> addProductToCart(@PathVariable Long cartId, @PathVariable Long productId,
+    public ResponseEntity<?> addProductToCart(@PathVariable Long cartId, @PathVariable Long productId,
             @PathVariable Integer quantity) {
-        CartDTO cartDTO = cartService.addProductToCart(cartId, productId, quantity);
-
-        return new ResponseEntity<CartDTO>(cartDTO, HttpStatus.CREATED);
+        try {
+            CartDTO cartDTO = cartService.addProductToCart(cartId, productId, quantity);
+            return new ResponseEntity<>(cartDTO, HttpStatus.CREATED);
+        } catch (ResourceNotFoundException | APIException e) {
+            return new ResponseEntity<>(Map.of("message", e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/admin/carts")
@@ -56,11 +61,14 @@ public class CartController {
     }
 
     @PutMapping("/public/carts/{cartId}/products/{productId}/quantity/{quantity}")
-    public ResponseEntity<CartDTO> updateCartProduct(@PathVariable Long cartId, @PathVariable Long productId,
+    public ResponseEntity<?> updateCartProduct(@PathVariable Long cartId, @PathVariable Long productId,
             @PathVariable Integer quantity) {
-        CartDTO cartDTO = cartService.updateProductQuantityInCart(cartId, productId, quantity);
-
-        return new ResponseEntity<CartDTO>(cartDTO, HttpStatus.OK);
+        try {
+            CartDTO cartDTO = cartService.updateProductQuantityInCart(cartId, productId, quantity);
+            return new ResponseEntity<>(cartDTO, HttpStatus.OK);
+        } catch (ResourceNotFoundException | APIException e) {
+            return new ResponseEntity<>(Map.of("message", e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @DeleteMapping("/public/carts/{cartId}/product/{productId}")

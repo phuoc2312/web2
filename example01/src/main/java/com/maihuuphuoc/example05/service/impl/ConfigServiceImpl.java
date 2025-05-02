@@ -1,7 +1,6 @@
 package com.maihuuphuoc.example05.service.impl;
 
 import com.maihuuphuoc.example05.entity.Config;
-import com.maihuuphuoc.example05.exceptions.APIException;
 import com.maihuuphuoc.example05.exceptions.ResourceNotFoundException;
 import com.maihuuphuoc.example05.payloads.ConfigDTO;
 import com.maihuuphuoc.example05.repository.ConfigRepo;
@@ -22,26 +21,20 @@ public class ConfigServiceImpl implements ConfigService {
 
     @PostConstruct
     public void init() {
-        // Truy vấn thử để ép Hibernate tải entity Config
         configRepo.count();
     }
 
     @Override
     public ConfigDTO createConfig(ConfigDTO configDTO) {
         Config config = modelMapper.map(configDTO, Config.class);
-        if (configRepo.findByKey(config.getKey()) != null) {
-            throw new APIException("Config with key " + config.getKey() + " already exists");
-        }
         Config savedConfig = configRepo.save(config);
         return modelMapper.map(savedConfig, ConfigDTO.class);
     }
 
     @Override
-    public ConfigDTO getConfigByKey(String key) {
-        Config config = configRepo.findByKey(key);
-        if (config == null) {
-            throw new ResourceNotFoundException("Config", "key", key);
-        }
+    public ConfigDTO getConfigById(Long id) {
+        Config config = configRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Config", "id", id));
         return modelMapper.map(config, ConfigDTO.class);
     }
 
@@ -49,9 +42,11 @@ public class ConfigServiceImpl implements ConfigService {
     public ConfigDTO updateConfig(Long id, ConfigDTO configDTO) {
         Config config = configRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Config", "id", id));
-        config.setKey(configDTO.getKey());
-        config.setValue(configDTO.getValue());
-        config.setDescription(configDTO.getDescription());
+        config.setSiteName(configDTO.getSiteName());
+        config.setEmail(configDTO.getEmail());
+        config.setPhone(configDTO.getPhone());
+        config.setAddress(configDTO.getAddress());
+        config.setHotline(configDTO.getHotline());
         Config updatedConfig = configRepo.save(config);
         return modelMapper.map(updatedConfig, ConfigDTO.class);
     }
