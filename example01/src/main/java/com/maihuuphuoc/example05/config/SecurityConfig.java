@@ -27,7 +27,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
-
 @EnableMethodSecurity
 public class SecurityConfig {
 
@@ -43,14 +42,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers(AppConstants.PUBLIC_URLS).permitAll()
-                        .requestMatchers(AppConstants.USER_URLS).hasAnyAuthority("USER", "ADMIN")
-                        .requestMatchers(AppConstants.ADMIN_URLS).hasAuthority("ADMIN")
-                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/public/**", "/api/public/", "/api/login", "/error").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(
-                        (request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                                "Unauthorized")))
+                        (request, response, authException) -> {
+                            System.out.println("Authentication failed for URI: " + request.getRequestURI());
+                            System.out.println("Method: " + request.getMethod());
+                            System.out.println("Headers: " + request.getHeaderNames());
+                            System.out.println("Error message: " + authException.getMessage());
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                                    "Unauthorized: " + authException.getMessage());
+                        }))
                 .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -62,10 +64,8 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-
         provider.setUserDetailsService(userDetailsServiceImpl);
         provider.setPasswordEncoder(passwordEncoder());
-
         return provider;
     }
 
@@ -82,7 +82,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // configuration.setAllowedOrigins(List.of("http://localhost:5173"));
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
@@ -92,5 +91,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    
 }

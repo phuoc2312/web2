@@ -12,7 +12,9 @@ import AboutPage from '../pages/About/AboutPage';
 import ProductCategory from '../component/ProductCategory';
 import NewsPage from '../pages/News/NewsPage';
 import ContactPage from '../pages/Contacts/ContactPage';
-import Checkout from '../pages/Checkout/Checkout';;
+import Checkout from '../pages/Checkout/Checkout';import OrderSuccess from '../pages/Order/OrderSuccess';
+import Profile from './Profile';
+;
 const Main = () => (
   <main>
     <Routes>
@@ -30,7 +32,8 @@ const Main = () => (
       <Route path="/blog" element={<NewsPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/checkout" element={<Checkout />} />
-   
+      <Route path="/order-success" element={<OrderSuccess />} />
+      <Route path="/profile" element={<Profile />} />
     </Routes>
   </main>
 )

@@ -147,7 +147,7 @@ export default function Header() {
                             <i className="fa fa-search"></i>
                         </Link>
                         <Link
-                            to="/account"
+                            to="/profile"
                             className="p-2 text-gray-600 hover:text-green-600 hidden sm:block"
                             aria-label="Tài khoản"
                         >

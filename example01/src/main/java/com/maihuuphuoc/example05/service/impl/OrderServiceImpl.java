@@ -93,12 +93,14 @@ public class OrderServiceImpl implements OrderService {
         }
         orderItems = orderItemRepo.saveAll(orderItems);
 
-        cart.getCartItems().forEach(item -> {
+        // Sao chép cartItems để tránh ConcurrentModificationException
+        List<CartItem> cartItemsCopy = new ArrayList<>(cart.getCartItems());
+        for (CartItem item : cartItemsCopy) {
             int quantity = item.getQuantity();
             Product product = item.getProduct();
             cartService.deleteProductFromCart(cartId, item.getProduct().getProductId());
             product.setQuantity(product.getQuantity() - quantity);
-        });
+        }
 
         OrderDTO orderDTO = modelMapper.map(savedOrder, OrderDTO.class);
         orderItems.forEach(item -> orderDTO.getOrderItems().add(modelMapper.map(item, OrderItemDTO.class)));
