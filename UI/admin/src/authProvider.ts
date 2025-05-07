@@ -1,47 +1,117 @@
+import axios, { AxiosError } from "axios";
 import { AuthProvider } from "react-admin";
-import axios from "axios";
 
 interface LoginParams {
     username: string;
     password: string;
 }
+
 interface CheckParamsErr {
     status: number;
 }
 
-export const authProvider = {
-    // called when the user attempts to log in
+interface RoleDTO {
+    roleId: number;
+    roleName: string;
+}
+
+interface UserDTO {
+    userId: number;
+    firstName: string;
+    lastName: string;
+    mobileNumber: string;
+    email: string;
+    password: string;
+    roles: RoleDTO[];
+    address: {
+        addressId: number;
+        street: string;
+        buildingName: string;
+        city: string;
+        state: string;
+        country: string;
+        pincode: string;
+    };
+    cart?: {
+        cartId: number;
+        totalPrice: number;
+        quantity: number;
+        products: unknown[];
+        message: string | null;
+    };
+}
+
+interface LoginResponse {
+    "jwt-token": string;
+}
+
+export const authProvider: AuthProvider = {
     login: async ({ username, password }: LoginParams) => {
         try {
-            const response = await axios.post('http://localhost:8080/api/login', {
-                email: username,
-                password: password,
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
+            // Gọi API đăng nhập
+            const loginResponse = await axios.post<LoginResponse>(
+                'http://localhost:8080/api/login',
+                {
+                    email: username,
+                    password: password,
                 },
-                withCredentials: true
-            });
-    
-            // Store the JWT token in local storage
-            const token = response.data["jwt-token"];
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    withCredentials: true,
+                }
+            );
+
+            // Lưu JWT token
+            const token = loginResponse.data["jwt-token"];
+            if (!token) {
+                throw new Error("Không nhận được token từ server");
+            }
             localStorage.setItem("jwt-token", token);
             localStorage.setItem("username", username);
-    
+
+            // Kiểm tra vai trò ADMIN
+            const userResponse = await axios.get<UserDTO>(
+                `http://localhost:8080/api/public/users/email/${encodeURIComponent(username)}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': '*/*',
+                    },
+                }
+            );
+
+            const roles = userResponse.data.roles || [];
+            const isAdmin = roles.some((role: RoleDTO) => role.roleName === 'ADMIN');
+
+            if (!isAdmin) {
+                // Xóa token nếu không phải ADMIN
+                localStorage.removeItem("jwt-token");
+                localStorage.removeItem("username");
+                throw new Error("Chỉ người dùng có vai trò ADMIN mới được phép đăng nhập");
+            }
+
             return Promise.resolve();
         } catch (error) {
-            return Promise.reject(new Error("Sai tài khoản hoặc mật khẩu. Vui lòng thử lại."));
+            // Xử lý lỗi
+            localStorage.removeItem("jwt-token");
+            localStorage.removeItem("username");
+            let errorMessage = "Chỉ người dùng có vai trò ADMIN mới được phép đăng nhập";
+            if (error instanceof AxiosError) {
+                errorMessage = error.response?.data?.message || error.message || errorMessage;
+            }
+            return Promise.reject(new Error(errorMessage));
         }
     },
-    
-    // called when the user clicks on the logout button
+
     logout: () => {
         localStorage.removeItem("jwt-token");
         localStorage.removeItem("username");
         return Promise.resolve();
     },
-    // called when the API returns an error
-    checkError: ({ status }:CheckParamsErr) => {
+
+    checkError: ({ status }: CheckParamsErr) => {
         if (status === 401 || status === 403) {
             localStorage.removeItem("jwt-token");
             localStorage.removeItem("username");
@@ -49,10 +119,12 @@ export const authProvider = {
         }
         return Promise.resolve();
     },
-    // called when the user navigates to a new location, to check for authentication
+
     checkAuth: () => {
         return localStorage.getItem("jwt-token") ? Promise.resolve() : Promise.reject();
     },
-    // called when the user navigates to a new location, to check for permissions / roles
-    getPermissions: () => Promise.resolve(),
-};
+
+    getPermissions: () => {
+        return Promise.resolve(['ADMIN']);
+    },
+}; 

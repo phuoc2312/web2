@@ -1,125 +1,149 @@
-import React, { Fragment } from 'react'
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Image, Text, View, Page, Document, StyleSheet } from '@react-pdf/renderer';
-import logo from './img/LogoHITC.png'
+import logo from './img/Screenshot 2025-03-31 083355-Photoroom.png';
+import { Font } from '@react-pdf/renderer';
 
-  const MyDocument = ({ data }) => {
-    const { cartId, totalPrice, products } = data;
-    
+const MyDocument = ({ data }) => {
+    const { totalPrice, products } = data;
+
     const styles = StyleSheet.create({
-        page: {fontSize: 11,paddingTop: 20,paddingLeft: 40,paddingRight: 40,lineHeight: 1.5,flexDirection: 'column' },
 
-        spaceBetween : {flex : 1,flexDirection: 'row',alignItems:'center',justifyContent:'space-between',color: "#3E3E3E" },
+        page: {
+            fontSize: 11,
+            paddingTop: 30,
+            paddingHorizontal: 40,
+            lineHeight: 1.5,
+            backgroundColor: '#fefefe',
+        },
+        header: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+        },
+        logo: {
+            width: 60,
+            height: 60,
+        },
+        invoiceTitle: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            textAlign: 'right',
+            color: '#222',
+        },
+        userInfo: {
+            marginBottom: 20,
+        },
+        label: {
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: '#333',
+        },
+        value: {
+            fontSize: 12,
+            color: '#555',
+            marginBottom: 4,
+        },
+        tableHeader: {
+            flexDirection: 'row',
+            backgroundColor: '#f0f0f0',
+            borderBottom: '1 solid #ccc',
+            paddingVertical: 5,
+            paddingHorizontal: 5,
+        },
+        tableRow: {
+            flexDirection: 'row',
+            borderBottom: '1 solid #eee',
+            paddingVertical: 5,
+            paddingHorizontal: 5,
+        },
+        cellHeader: {
+            flex: 1,
+            fontSize: 11,
+            fontWeight: 'bold',
+            color: '#333',
+        },
+        cell: {
+            flex: 1,
+            fontSize: 10,
+            color: '#444',
+        },
+        totalRow: {
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            marginTop: 10,
+            borderTop: '1 solid #ccc',
+            paddingTop: 8,
+        },
+        totalLabel: {
+            fontSize: 12,
+            fontWeight: 'bold',
+            marginRight: 10,
+        },
+        totalValue: {
+            fontSize: 12,
+            color: '#000',
+        },
 
-        titleContainer: {flexDirection: 'row',marginTop: 24},
-        
-        logo: { width: 300 },
-
-        reportTitle: {  fontSize: 16,  textAlign: 'center' },
-
-        addressTitle : {fontSize: 15,fontStyle: 'bold'}, 
-        
-        invoice : {fontWeight: 'bold',fontSize: 20},
-        
-        invoiceNumber : {fontSize: 11,fontWeight: 'bold'}, 
-        
-        address : { fontWeight: 400, fontSize: 13},
-        
-        theader : {marginTop : 20,fontSize : 10,fontStyle: 'bold',paddingTop: 4 ,paddingLeft: 7 ,flex:1,height:20,backgroundColor : '#DEDEDE',borderColor : 'whitesmoke',borderRightWidth:1,borderBottomWidth:1},
-
-        theader2 : { flex:2, borderRightWidth:0, borderBottomWidth:1},
-
-        tbody:{ fontSize : 9, paddingTop: 4 , paddingLeft: 7 , flex:1, borderColor : 'whitesmoke', borderRightWidth:1, borderBottomWidth:1},
-
-        total:{ fontSize : 9, paddingTop: 4 , paddingLeft: 7 , flex:1.5, borderColor : 'whitesmoke', borderBottomWidth:1},
-
-        tbody2:{ flex:2, borderRightWidth:1, }
-        
     });
-
-    const InvoiceTitle = () => (
-        <View style={styles.titleContainer}>
-            <View style={styles.spaceBetween}>
-                <Image style={styles.logo} src={logo} />
-            </View>
-        </View>
-    );
-
-    const UserAddress = () => (
-        <View style={styles.titleContainer}>
-            <View style={styles.spaceBetween}>
-                <View style={{ maxWidth: 200 }}>
-                    <Text style={styles.addressTitle}>Email: <Text style={styles.address}>{localStorage.getItem('globalEmailCart')}</Text></Text>
-                    <Text style={styles.addressTitle}>Total Price: <Text style={styles.address}>{totalPrice.toFixed(2)}</Text></Text>
-                </View>
-            </View>
-        </View>
-    );
-
-    const TableHead = () => (
-        <View style={{ width: '100%', flexDirection: 'row', marginTop: 10 }}>
-            <View style={[styles.theader, styles.theader2]}>
-                <Text>Items</Text>
-            </View>
-            <View style={styles.theader}>
-                <Text>Price</Text>
-            </View>
-            <View style={styles.theader}>
-                <Text>Qty</Text>
-            </View>
-            <View style={styles.theader}>
-                <Text>Amount</Text>
-            </View>
-        </View>
-    );
-
-    const TableBody = () => (
-        products.map((product) => (
-            <View style={{ width: '100%', flexDirection: 'row' }} key={product.productId}>
-                <View style={[styles.tbody, styles.tbody2]}>
-                    <Text>{product.productName}</Text>
-                </View>
-                <View style={styles.tbody}>
-                    <Text>{product.price.toFixed(2)}</Text>
-                </View>
-                <View style={styles.tbody}>
-                    <Text>{product.quantity}</Text>
-                </View>
-                <View style={styles.tbody}>
-                    <Text>{(product.price * product.quantity).toFixed(2)}</Text>
-                </View>
-            </View>
-        ))
-    );
-
-    const TableTotal = () => (
-        <View style={{ width: '100%', flexDirection: 'row' }}>
-            <View style={styles.total}>
-                <Text></Text>
-            </View>
-            <View style={styles.total}>
-                <Text></Text>
-            </View>
-            <View style={styles.tbody}>
-                <Text>Total</Text>
-            </View>
-            <View style={styles.tbody}>
-                <Text>{totalPrice.toFixed(2)}</Text>
-            </View>
-        </View>
-    );
 
     return (
         <Document>
             <Page size="A4" style={styles.page}>
-                <InvoiceTitle />
-                <UserAddress />
-                <TableHead />
-                <TableBody />
-                <TableTotal />
+                {/* Header */}
+                <View style={styles.header}>
+                    <Image style={styles.logo} src={logo} />
+                    <Text style={styles.invoiceTitle}>MHP Store</Text>
+                </View>
+
+                {/* User Info */}
+                <View style={styles.userInfo}>
+                    <Text style={styles.label}>Email:</Text>
+                    <Text style={styles.value}>{localStorage.getItem('globalEmailCart')}</Text>
+                    <Text style={styles.label}>Total Price:</Text>
+                    <Text style={styles.value}>{totalPrice}VND</Text>
+                </View>
+
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                    <Text style={[styles.cellHeader, { flex: 2 }]}>Item</Text>
+                    <Text style={styles.cellHeader}>Price</Text>
+                    <Text style={styles.cellHeader}>Qty</Text>
+                    <Text style={styles.cellHeader}>Amount</Text>
+                </View>
+
+                {/* Table Body */}
+                {products.map(product => (
+                    <View style={styles.tableRow} key={product.productId}>
+                        <Text style={[styles.cell, { flex: 2 }]}>{product.productName}</Text>
+                        <Text style={styles.cell}>{product.price}VND</Text>
+                        <Text style={styles.cell}>{product.quantity}</Text>
+                        <Text style={styles.cell}>{(product.price * product.quantity)}VND</Text>
+                    </View>
+                ))}
+
+                {/* Total */}
+                <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total:</Text>
+                    <Text style={styles.totalValue}>{totalPrice}VND</Text>
+                </View>
             </Page>
         </Document>
     );
-}
+};
+MyDocument.propTypes = {
+    data: PropTypes.shape({
+        totalPrice: PropTypes.number.isRequired,
+        products: PropTypes.arrayOf(
+            PropTypes.shape({
+                productId: PropTypes.string.isRequired,
+                productName: PropTypes.string.isRequired,
+                price: PropTypes.number.isRequired,
+                quantity: PropTypes.number.isRequired,
+            })
+        ).isRequired,
+    }).isRequired,
+};
 
-export default MyDocument
-
+export default MyDocument;

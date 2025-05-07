@@ -14,6 +14,7 @@ import NewsPage from '../pages/News/NewsPage';
 import ContactPage from '../pages/Contacts/ContactPage';
 import Checkout from '../pages/Checkout/Checkout';import OrderSuccess from '../pages/Order/OrderSuccess';
 import Profile from './Profile';
+import OrderDetail from '../pages/Order/OrderDetail';
 ;
 const Main = () => (
   <main>
@@ -33,7 +34,10 @@ const Main = () => (
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order-success" element={<OrderSuccess />} />
+      <Route path="/orders/:orderId" element={<OrderDetail />} />
+
       <Route path="/profile" element={<Profile />} />
+
     </Routes>
   </main>
 )

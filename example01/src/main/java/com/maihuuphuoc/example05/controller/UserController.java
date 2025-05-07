@@ -20,6 +20,7 @@ import com.maihuuphuoc.example05.service.CartService;
 import com.maihuuphuoc.example05.service.UserService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api")
@@ -53,10 +54,16 @@ public class UserController {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
-    @PutMapping("/public/users/{userId}")
-    public ResponseEntity<UserDTO> updateUser(@RequestBody UserDTO userDTO, @PathVariable Long userId) {
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long userId, @Valid @RequestBody UserDTO userDTO) {
+        if (!userId.equals(userDTO.getUserId())) {
+            return ResponseEntity.badRequest().body(null);
+        }
         UserDTO updatedUser = userService.updateUser(userId, userDTO);
-        return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+        if (updatedUser == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(updatedUser);
     }
 
     @DeleteMapping("/admin/users/{userId}")

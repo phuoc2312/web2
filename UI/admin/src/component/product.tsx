@@ -1,6 +1,6 @@
 import { List, useRecordContext, Link, Datagrid, TextField, ImageField, NumberField, Create, Edit, SimpleForm, TextInput, NumberInput, ImageInput, ReferenceInput, SelectInput, EditButton, DeleteButton } from 'react-admin';
 import { Link as RouterLink } from 'react-router-dom';
-import PDFButton from './PDFButton';
+
 
 const CustomImageField = ({ source }: { source: string }) => {
     const record = useRecordContext();

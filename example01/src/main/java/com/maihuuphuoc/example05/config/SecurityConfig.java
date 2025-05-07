@@ -42,7 +42,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/api/public/**", "/api/public/", "/api/login", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/login",
+                                "/api/public/**",
+                                "/api/public/",
+                                "/images/**",
+                                "/error",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html")
+                        .permitAll()
+                                
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(
                         (request, response, authException) -> {
