@@ -160,4 +160,12 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus(orderStatus);
         return modelMapper.map(order, OrderDTO.class);
     }
+
+    @Override
+    public OrderDTO getOrderById(Long orderId) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+        return modelMapper.map(order, OrderDTO.class);
+    }
+
 }

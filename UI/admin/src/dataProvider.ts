@@ -70,28 +70,34 @@ const httpClient = {
 
 export const dataProvider: DataProvider = {
     getList: (resource: string, { pagination = {}, sort = {}, filter = {} }) => {
-        const { page = 0, perPage = 10 } = pagination;
-        const { field = 'id', order = 'ASC' } = sort;
-
+        // 1. Giữ nguyên logic phân trang và sắp xếp mặc định
+        const { page = 1, perPage = 25 } = pagination; // Thay đổi giá trị mặc định để phù hợp với orders
+        const { field = 'orderDate', order = 'DESC' } = sort; // Thay đổi mặc định cho orders
+    
+        // 2. Giữ nguyên ánh xạ trường ID
         const idFieldMapping: { [key: string]: string; } = {
             products: 'productId',
             categories: 'categoryId',
             carts: 'cartId',
-            // Add more mappings as needed
+            orders: 'orderId', // Thêm mapping cho orders
         };
-
-        // Determine the ID field based on the resource
+    
+        // 3. Xác định trường ID
         const idField = idFieldMapping[resource] || 'id';
-
+    
+        // 4. Xây dựng query parameters (giữ logic cũ nhưng điều chỉnh pageNumber)
         const query = {
-            pageNumber: page.toString(),
+            pageNumber: (page - 1).toString(), // Chuyển từ 1-based sang 0-based
             pageSize: perPage.toString(),
             sortBy: field,
             sortOrder: order,
             ...filter
         };
+        
         console.log('Request filter:', filter);
         console.log('user email: ', localStorage.getItem('username'));
+    
+        // 5. Xây dựng URL (giữ logic cũ nhưng thêm xử lý cho orders)
         let url: string;
         if (filter && filter.search) {
             const keyword = filter.search;
@@ -104,37 +110,37 @@ export const dataProvider: DataProvider = {
         } else {
             if (resource === "carts") {
                 url = `${apiUrl}/admin/users`;
-            }
-            else {
+            } else if (resource === "orders") {
+                url = `${apiUrl}/admin/orders?${new URLSearchParams(query).toString()}`; // Sử dụng endpoint admin cho orders
+            } else {
                 url = `${apiUrl}/public/${resource}?${new URLSearchParams(query).toString()}`;
             }
         }
-
+    
         console.log('Request URL:', url);
-
-
+    
+        // 6. Giữ nguyên logic xử lý response
         let data;
-
         return httpClient.get(url).then(({ json }) => {
             const baseUrl = 'http://localhost:8080/api/public/products/image/';
             if (resource === "carts") {
                 data = json.content
-                    .filter((item: any) => item && item.cart) // Add this line to filter out null or undefined items and items without a cart
-                    .map((item: { [x: string]: any; image: any; }) => ({
+                    .filter((item: any) => item && item.cart)
+                    .map((item: any) => ({
                         id: item.cart.cartId,
                         ...item,
                         image: item.image ? `${baseUrl}${item.image}` : null
                     }));
             } else {
                 data = json.content
-                    .filter((item: any) => item !== null && item !== undefined) // Add this line to filter out null or undefined items
-                    .map((item: { [x: string]: any; image: any; }) => ({
+                    .filter((item: any) => item !== null && item !== undefined)
+                    .map((item: any) => ({
                         id: item[idField],
                         ...item,
                         image: item.image ? `${baseUrl}${item.image}` : null
                     }));
             }
-
+    
             console.log('data list:', data);
             return {
                 data,
@@ -142,7 +148,6 @@ export const dataProvider: DataProvider = {
             };
         });
     },
-
     delete: async <RecordType extends RaRecord = any>(resource: string, params: DeleteParams<RecordType>): Promise<DeleteResult<RecordType>> => {
         try {
             // Construct the URL for the DELETE request
@@ -220,75 +225,97 @@ export const dataProvider: DataProvider = {
         }
     },
     update: async (resource: string, params: UpdateParams): Promise<UpdateResult> => {
-        const url = `${apiUrl}/admin/${resource}/${params.id}`;
-        const { data } = params;
+        let url: string;
+        const { data, id } = params;
 
-        // Perform the PUT request to update the resource
-        const result = await httpClient.put(url, data);
-
-        // Assuming the API response contains the updated data with the correct 'id'
-        const updatedData = {
-            id: params.id,  // Ensure 'id' is included in the response
-            ...result.json
-        };
-
-        return { data: updatedData };
+        if (resource === "orders" && data.orderStatus) {
+            // Cập nhật trạng thái đơn hàng
+            const emailId = data.email || localStorage.getItem('username');
+            if (!emailId) {
+                throw new Error('No emailId found for order status update.');
+            }
+            url = `${apiUrl}/admin/users/${encodeURIComponent(emailId)}/orders/${id}/orderStatus/${encodeURIComponent(data.orderStatus)}`;
+            // Gửi yêu cầu PUT mà không cần body
+            const result = await httpClient.put(url);
+            return {
+                data: {
+                    id,
+                    ...result.json,
+                    orderStatus: data.orderStatus // Đảm bảo orderStatus được trả về
+                }
+            };
+        } else {
+            // Logic cập nhật mặc định cho các tài nguyên khác
+            url = `${apiUrl}/admin/${resource}/${id}`;
+            const result = await httpClient.put(url, data);
+            return {
+                data: {
+                    id,
+                    ...result.json
+                }
+            };
+        }
     },
+
     getOne: async (resource: string, params: GetOneParams): Promise<GetOneResult> => {
         console.log('getOne called for resource:', resource, 'with params:', params);
         let url: string;
+
         if (resource === "carts") {
-            url = `${apiUrl}/public/users/${params.meta.email}/${resource}/${params.id}`;
+            url = `${apiUrl}/public/users/${params.meta?.email}/${resource}/${params.id}`;
+        } else if (resource === "orders") {
+            url = `${apiUrl}/admin/orders/${params.id}`;
         } else {
             url = `${apiUrl}/public/${resource}/${params.id}`;
         }
 
-        const result = await httpClient.get(url);
+        try {
+            const result = await httpClient.get(url);
+            console.log('API Response:', result.json);
 
-        console.log('API Response:', result.json);
-
-        const idFieldMapping: { [key: string]: string } = {
-            products: 'productId',
-            categories: 'categoryId',
-            carts: 'cartId',
-            // Add more mappings as needed
-        };
-
-        const idField = idFieldMapping[resource] || 'id';
-        const baseUrl = 'http://localhost:8080/api/public/products/image/'; // Base URL for product images
-        let data;
-        // Format the cart data
-        if (resource === "carts") {
-            data = {
-                id: result.json[idField], // Correctly mapping the ID field
-                totalPrice: result.json.totalPrice,
-                products: result.json.products.map((product: any) => ({
-                    id: product.productId,
-                    productName: product.productName,
-                    image: product.image ? `${baseUrl}${product.image}` : null,
-                    description: product.description,
-                    quantity: product.quantity,
-                    price: product.price,
-                    discount: product.discount,
-                    specialPrice: product.specialPrice,
-                    category: product.category ? {
-                        id: product.category.categoryId,
-                        name: product.category.categoryName
-                    } : null,
-                }))
+            const idFieldMapping: { [key: string]: string } = {
+                products: 'productId',
+                categories: 'categoryId',
+                carts: 'cartId',
+                orders: 'orderId',
             };
-        }
-        else {
-            data = {
-                id: result.json[idField],
 
-                ...result.json
-            };
-        }
+            const idField = idFieldMapping[resource] || 'id';
+            const baseUrl = 'http://localhost:8080/api/public/products/image/';
+            let data;
+            if (resource === "carts") {
+                data = {
+                    id: result.json[idField],
+                    totalPrice: result.json.totalPrice,
+                    products: result.json.products.map((product: any) => ({
+                        id: product.productId,
+                        productName: product.productName,
+                        image: product.image ? `${baseUrl}${product.image}` : null,
+                        description: product.description,
+                        quantity: product.quantity,
+                        price: product.price,
+                        discount: product.discount,
+                        specialPrice: product.specialPrice,
+                        category: product.category ? {
+                            id: product.category.categoryId,
+                            name: product.category.categoryName
+                        } : null,
+                    }))
+                };
+            } else {
+                data = {
+                    id: result.json[idField],
+                    ...result.json
+                };
+            }
 
-        return { data };
+            return { data };
+        } catch (error) {
+            console.error('API request failed for URL:', url);
+            console.error('Error details:', error.response?.data || error.message);
+            throw error;
+        }
     },
-
     getMany: async (resource: string, params: GetManyParams): Promise<GetManyResult> => {
         const idFieldMapping: { [key: string]: string } = {
             products: 'productId',

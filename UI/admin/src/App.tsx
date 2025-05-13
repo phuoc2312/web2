@@ -1,4 +1,5 @@
-import { Admin, Resource, ShowGuesser, EditGuesser, ListGuesser, CustomRoutes } from "react-admin";
+// src/App.tsx
+import { Admin, Resource, CustomRoutes } from "react-admin";
 import { Route } from "react-router-dom";
 import { Layout } from "./Layout";
 import CategoryIcon from '@mui/icons-material/Category';
@@ -13,16 +14,43 @@ import { ProductList, ProductCreate, ProductEdit } from "./component/product";
 import { CartList, CartShow } from "./component/Carts";
 import ProductImageUpdate from "./component/ProductImageUpdate";
 import OrderList from "./component/OrderList";
+import OrderShow from "./component/OrderShow"; // Thêm dòng này
 
 export const App = () => (
   <Admin authProvider={authProvider} layout={Layout} dataProvider={dataProvider} dashboard={Dashboard}>
     <CustomRoutes>
       <Route path="/products/:id/update-image" element={<ProductImageUpdate />} />
     </CustomRoutes>
-    <Resource name="categories" list={CategoryList} create={CategoryCreate} edit={CategoryEdit} icon={CategoryIcon} />
-    <Resource name="products" list={ProductList} create={ProductCreate} edit={ProductEdit} icon={Inventory2Icon} />
-    <Resource name="carts" list={CartList} show={CartShow} icon={ShoppingCartIcon} />
-    <Resource name="orders" list={OrderList} icon={ListAltIcon} />
+
+    <Resource
+      name="categories"
+      list={CategoryList}
+      create={CategoryCreate}
+      edit={CategoryEdit}
+      icon={CategoryIcon}
+    />
+
+    <Resource
+      name="products"
+      list={ProductList}
+      create={ProductCreate}
+      edit={ProductEdit}
+      icon={Inventory2Icon}
+    />
+
+    <Resource
+      name="carts"
+      list={CartList}
+      show={CartShow}
+      icon={ShoppingCartIcon}
+    />
+
+    <Resource
+      name="orders"
+      list={OrderList}
+      show={OrderShow}  // Đảm bảo có show component
+      icon={ListAltIcon}
+    />        
   </Admin>
 );
 

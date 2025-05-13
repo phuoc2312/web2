@@ -15,4 +15,6 @@ public interface OrderService {
     OrderResponse getAllOrders(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
     OrderDTO updateOrder(String emailId, Long orderId, String orderStatus);
+
+    OrderDTO getOrderById(Long orderId);
 }

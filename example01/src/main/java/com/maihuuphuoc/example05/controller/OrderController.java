@@ -42,9 +42,17 @@ public class OrderController {
             @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_ORDERS_BY, required = false) String sortBy,
             @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
         OrderResponse orderResponse = orderService.getAllOrders(pageNumber, pageSize, sortBy, sortOrder);
-        return new ResponseEntity<OrderResponse>(orderResponse, HttpStatus.FOUND);
+        return new ResponseEntity<OrderResponse>(orderResponse, HttpStatus.OK);
     }
-
+    @GetMapping("/admin/orders/{orderId}")
+    public ResponseEntity<OrderDTO> getOrderByIdForAdmin(@PathVariable Long orderId) {
+        OrderDTO order = orderService.getOrderById(orderId);
+        if (order != null) {
+            return new ResponseEntity<>(order, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
     @GetMapping("public/users/{emailId}/orders")
     public ResponseEntity<List<OrderDTO>> getOrdersByUser(@PathVariable String emailId) {
         List<OrderDTO> orders = orderService.getOrdersByUser(emailId);
