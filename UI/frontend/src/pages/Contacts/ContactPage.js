@@ -1,7 +1,18 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import axios from "axios";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Tùy chỉnh icon cho Marker
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
+});
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -9,22 +20,121 @@ const ContactPage = () => {
     email: "",
     message: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [config, setConfig] = useState(null);
+  const [mapCoordinates, setMapCoordinates] = useState({
+    lat: 10.7764,
+    lng: 106.7059
+  }); // Tọa độ mặc định (TP.HCM)
 
+  // Gọi API để lấy dữ liệu cấu hình
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await axios.get("http://localhost:8080/api/public/config/1", {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        setConfig(response.data);
+
+        // Nếu có địa chỉ trong config, thực hiện chuyển đổi sang tọa độ
+        if (response.data.address) {
+          geocodeAddress(response.data.address);
+        }
+      } catch (error) {
+        toast.error("Không thể tải thông tin liên hệ!");
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  // Hàm chuyển đổi địa chỉ thành tọa độ
+  const geocodeAddress = async (address) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const location = data[0];
+        setMapCoordinates({
+          lat: parseFloat(location.lat),
+          lng: parseFloat(location.lon)
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy tọa độ:", error);
+      toast.error("Không thể tải bản đồ. Vui lòng thử lại sau!");
+    }
+  };
+  useEffect(() => {
+    if (config?.address) {
+      geocodeAddress(config.address);
+    }
+  }, [config?.address]); // Theo dõi thay đổi địa chỉ
+
+  // Thêm key vào MapContainer để force re-render
+  <MapContainer
+    key={`${mapCoordinates.lat}-${mapCoordinates.lng}`} // Thêm dòng này
+    center={mapCoordinates}
+    zoom={15}
+    style={{ height: "100%", width: "100%" }}
+    scrollWheelZoom={false}
+  ></MapContainer>
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate form
     if (!formData.name || !formData.email || !formData.message) {
       toast.error("Vui lòng điền đầy đủ thông tin!");
       return;
     }
-    // Giả lập gửi dữ liệu (có thể thay bằng API)
-    console.log("Dữ liệu liên hệ:", formData);
-    toast.success("Tin nhắn của bạn đã được gửi! Chúng tôi sẽ liên hệ sớm.");
-    setFormData({ name: "", email: "", message: "" });
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Email không hợp lệ!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(
+        "http://localhost:8080/api/public/contacts",
+        {
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.success("Tin nhắn của bạn đã được gửi! Chúng tôi sẽ liên hệ sớm.");
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      if (error.response) {
+        const { status, data } = error.response;
+        if (status === 400) {
+          toast.error(data.message || "Dữ liệu không hợp lệ!");
+        } else {
+          toast.error("Có lỗi xảy ra, vui lòng thử lại!");
+        }
+      } else {
+        toast.error("Không thể kết nối đến server!");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,7 +165,7 @@ const ContactPage = () => {
         {/* Tiêu đề */}
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 uppercase tracking-wide">
-            Liên hệ với MHP Store
+            Liên hệ với {config?.siteName}
           </h1>
           <div className="w-24 h-1 bg-green-600 mt-4 mx-auto"></div>
           <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
@@ -71,41 +181,59 @@ const ContactPage = () => {
               Thông tin liên hệ
             </h2>
             <div className="space-y-4">
+              {/* Địa chỉ */}
               <div className="flex items-start">
                 <i className="fas fa-map-marker-alt text-2xl text-green-600 mr-4 mt-1"></i>
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Địa chỉ</h3>
                   <p className="text-gray-600">
-                    123 Đường Lê Lợi, Quận 1, TP. Hồ Chí Minh, Việt Nam
+                    {config?.address}
                   </p>
                 </div>
               </div>
+
+              {/* Email */}
               <div className="flex items-start">
                 <i className="fas fa-envelope text-2xl text-green-600 mr-4 mt-1"></i>
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Email</h3>
-                  <p className="text-gray-600">support@MHP Store.com</p>
+                  <p className="text-gray-600">
+                    {config?.email}
+                  </p>
                 </div>
               </div>
+
+              {/* Hotline */}
               <div className="flex items-start">
-                <i className="fas fa-phone-alt text-2xl text-green-600 mr-4 mt-1"></i>
+                <i className="fas fa-phone text-2xl text-green-600 mr-4 mt-1"></i>
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Hotline</h3>
-                  <p className="text-gray-600">0123 456 789 (8:00 - 22:00)</p>
+                  <p className="text-gray-600">
+                    {config?.hotline}
+                  </p>
                 </div>
               </div>
             </div>
-            {/* Bản đồ nhúng */}
-            <div className="mt-8">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.447373629852!2d106.698293614623!3d10.776389692316!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f38b3d450ad%3A0x2b70e41931eb4168!2sLe%20Loi%2C%20District%201%2C%20Ho%20Chi%20Minh%2C%20Vietnam!5e0!3m2!1sen!2s!4v1634567890123!5m2!1sen!2s"
-                width="100%"
-                height="250"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                title="MHP Store Location"
-              ></iframe>
+
+            {/* Bản đồ */}
+            <div className="mt-8 h-64 rounded-lg overflow-hidden">
+              <MapContainer
+                center={mapCoordinates}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <Marker position={mapCoordinates}>
+                  <Popup>
+                    {config?.siteName} <br />
+                    {config?.address}
+                  </Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </div>
 
@@ -117,7 +245,7 @@ const ContactPage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Họ và tên
+                  Họ và tên *
                 </label>
                 <input
                   type="text"
@@ -130,9 +258,10 @@ const ContactPage = () => {
                   required
                 />
               </div>
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
+                  Email *
                 </label>
                 <input
                   type="email"
@@ -145,9 +274,10 @@ const ContactPage = () => {
                   required
                 />
               </div>
+
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                  Tin nhắn
+                  Tin nhắn *
                 </label>
                 <textarea
                   id="message"
@@ -160,11 +290,21 @@ const ContactPage = () => {
                   required
                 ></textarea>
               </div>
+
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200"
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex justify-center items-center"
+                disabled={loading}
               >
-                Gửi tin nhắn
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Đang gửi...
+                  </>
+                ) : "Gửi tin nhắn"}
               </button>
             </form>
           </div>
@@ -173,13 +313,13 @@ const ContactPage = () => {
         {/* Lời kêu gọi hành động */}
         <div className="text-center bg-green-600 text-white py-8 rounded-lg">
           <h2 className="text-2xl font-bold mb-4">
-            Khám phá các sản phẩm tại MHP Store!
+            Khám phá các sản phẩm tại {config?.siteName}!
           </h2>
           <p className="text-lg mb-6">
             Xem ngay các ưu đãi và sản phẩm chất lượng đang chờ bạn!
           </p>
           <Link
-            to="/ListingGrid"
+            to="/products"
             className="inline-block bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
           >
             Mua sắm ngay

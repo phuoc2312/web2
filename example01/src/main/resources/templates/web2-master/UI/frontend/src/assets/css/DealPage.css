@@ -1,0 +1,66 @@
+.deal-page {
+    padding: 20px;
+    background-color: #f8f8f8;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.deal-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.deal-item {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin: 15px;
+    padding: 15px;
+    text-align: center;
+    width: 200px;
+    /* Adjust width as needed */
+}
+
+.deal-image {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+.deal-title {
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+.deal-price {
+    font-size: 1rem;
+    margin: 10px 0;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #777;
+    margin-right: 10px;
+}
+
+.discounted-price {
+    font-weight: bold;
+    color: #d9534f;
+}
+
+.buy-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.buy-button:hover {
+    background-color: #0056b3;
+}

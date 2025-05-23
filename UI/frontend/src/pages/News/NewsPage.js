@@ -1,43 +1,66 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-const newsArticles = [
-  {
-    id: 1,
-    title: "Khuyến mãi lớn tháng 5 - Giảm giá đến 50%!",
-    summary:
-      "MHP Store tung chương trình khuyến mãi lớn nhất trong năm với hàng loạt sản phẩm giảm giá lên đến 50%. Đừng bỏ lỡ cơ hội sở hữu các sản phẩm chất lượng với giá siêu hời!",
-    image: "https://images.unsplash.com/photo-1543503109-04b47b6637dc?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "25/04/2025",
-  },
-  {
-    id: 2,
-    title: "Ra mắt bộ sưu tập thời trang hè 2025",
-    summary:
-      "Khám phá bộ sưu tập thời trang hè mới nhất từ MHP Store, với thiết kế trẻ trung, hiện đại, phù hợp cho mọi phong cách. Sản phẩm đang có sẵn với nhiều ưu đãi đặc biệt!",
-    image: "https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "20/04/2025",
-  },
-  {
-    id: 3,
-    title: "MHP Store hợp tác với thương hiệu công nghệ hàng đầu",
-    summary:
-      "Chúng tôi tự hào công bố hợp tác với các thương hiệu công nghệ lớn, mang đến các sản phẩm điện tử hiện đại với giá cạnh tranh. Hãy theo dõi để cập nhật thêm thông tin!",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "15/04/2025",
-  },
-  {
-    id: 4,
-    title: "Hướng dẫn mua sắm trực tuyến tại MHP Store",
-    summary:
-      "Bạn mới bắt đầu mua sắm tại MHP Store? Xem ngay hướng dẫn chi tiết của chúng tôi để đặt hàng nhanh chóng, tận hưởng ưu đãi, và nhận giao hàng tận nơi!",
-    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80",
-    date: "10/04/2025",
-  },
-];
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const NewsPage = () => {
+  const [articles, setArticles] = useState([]);
+  const [pageNumber, setPageNumber] = useState(0);
+  const [pageSize] = useState(9); // 9 bài để hiển thị 3x3 grid
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // Gọi API để lấy danh sách bài viết
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8080/api/public/blogs", {
+          params: {
+            pageNumber,
+            pageSize,
+            sortBy: "createdAt",
+            sortOrder: "desc", // Bài mới nhất trước
+          },
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const { content, totalPages } = response.data;
+        setArticles(content);
+        setTotalPages(totalPages);
+      } catch (error) {
+        toast.error("Không thể tải tin tức!");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticles();
+  }, [pageNumber, pageSize]);
+
+  // Format ngày
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  // Xử lý phân trang
+  const handlePreviousPage = () => {
+    if (pageNumber > 0) {
+      setPageNumber(pageNumber - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (pageNumber < totalPages - 1) {
+      setPageNumber(pageNumber + 1);
+    }
+  };
+
   return (
     <section className="bg-gray-50 min-h-screen py-12">
       <div className="container mx-auto px-4">
@@ -75,46 +98,83 @@ const NewsPage = () => {
         </div>
 
         {/* Danh sách bài viết */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {newsArticles.map((article) => (
-            <div
-              key={article.id}
-              className="group bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1"
-            >
-              <Link to={`/news/${article.id}`}>
-                <div className="relative overflow-hidden">
-                  <img
-                    src={article.image}
-                    alt={article.title}
-                    className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-              </Link>
-              <div className="p-6">
+        {loading ? (
+          <div className="text-center text-gray-600">Đang tải tin tức...</div>
+        ) : articles.length === 0 ? (
+          <div className="text-center text-gray-600">Không có tin tức nào!</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {articles.map((article) => (
+              <div
+                key={article.id}
+                className="group bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1"
+              >
                 <Link to={`/news/${article.id}`}>
-                  <h2 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 line-clamp-2 mb-2">
-                    {article.title}
-                  </h2>
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={article.image || "https://via.placeholder.com/300"}
+                      alt={article.title}
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
                 </Link>
-                <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                  {article.summary}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
-                    <i className="fas fa-calendar-alt mr-1"></i>
-                    {article.date}
-                  </span>
-                  <Link
-                    to={`/news/${article.id}`}
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                  >
-                    Đọc thêm <i className="fas fa-arrow-right ml-1"></i>
+                <div className="p-6">
+                  <Link to={`/news/${article.id}`}>
+                    <h2 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 line-clamp-2 mb-2">
+                      {article.title}
+                    </h2>
                   </Link>
+                  <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+                    {article.content}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      <i className="fas fa-calendar-alt mr-1"></i>
+                      {formatDate(article.createdAt)}
+                    </span>
+                    <Link
+                      to={`/news/${article.id}`}
+                      className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                    >
+                      Đọc thêm <i className="fas fa-arrow-right ml-1"></i>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* Phân trang */}
+        {totalPages > 1 && (
+          <div className="flex justify-center space-x-4 mb-16">
+            <button
+              onClick={handlePreviousPage}
+              disabled={pageNumber === 0}
+              className={`px-4 py-2 rounded-lg ${
+                pageNumber === 0
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              Trang trước
+            </button>
+            <span className="text-gray-600">
+              Trang {pageNumber + 1} / {totalPages}
+            </span>
+            <button
+              onClick={handleNextPage}
+              disabled={pageNumber >= totalPages - 1}
+              className={`px-4 py-2 rounded-lg ${
+                pageNumber >= totalPages - 1
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              Trang sau
+            </button>
+          </div>
+        )}
 
         {/* Lời kêu gọi hành động */}
         <div className="text-center bg-blue-600 text-white py-8 rounded-lg">

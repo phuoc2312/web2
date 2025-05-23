@@ -2,6 +2,7 @@ package com.maihuuphuoc.example05.service.impl;
 
 import com.maihuuphuoc.example05.entity.Blog;
 import com.maihuuphuoc.example05.entity.User;
+import com.maihuuphuoc.example05.exceptions.APIException;
 import com.maihuuphuoc.example05.exceptions.ResourceNotFoundException;
 import com.maihuuphuoc.example05.payloads.BlogDTO;
 import com.maihuuphuoc.example05.payloads.BlogResponse;
@@ -20,9 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BlogServiceImpl implements BlogService {
-    @Autowired
+     @Autowired
     private BlogRepo blogRepo;
-
     @Autowired
     private UserRepo userRepo;
 
@@ -33,6 +33,10 @@ public class BlogServiceImpl implements BlogService {
     public BlogDTO createBlog(BlogDTO blogDTO, String userEmail) {
         User author = userRepo.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+        // Kiểm tra trùng tiêu đề blog
+        if (blogRepo.findByTitle(blogDTO.getTitle()).isPresent()) {
+            throw new APIException("Blog with title '" + blogDTO.getTitle() + "' already exists!");
+        }
         Blog blog = modelMapper.map(blogDTO, Blog.class);
         blog.setAuthor(author);
         Blog savedBlog = blogRepo.save(blog);
@@ -55,6 +59,9 @@ public class BlogServiceImpl implements BlogService {
         Sort sort = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(pageNumber, pageSize, sort);
         Page<Blog> blogPage = blogRepo.findAll(pageable);
+        if (blogPage.getContent().isEmpty()) {
+            throw new APIException("No blogs found!");
+        }
         List<BlogDTO> blogDTOs = blogPage.getContent().stream()
                 .map(blog -> {
                     BlogDTO dto = modelMapper.map(blog, BlogDTO.class);

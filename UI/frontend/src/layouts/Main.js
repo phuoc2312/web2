@@ -12,9 +12,10 @@ import AboutPage from '../pages/About/AboutPage';
 import ProductCategory from '../component/ProductCategory';
 import NewsPage from '../pages/News/NewsPage';
 import ContactPage from '../pages/Contacts/ContactPage';
-import Checkout from '../pages/Checkout/Checkout';import OrderSuccess from '../pages/Order/OrderSuccess';
+import Checkout from '../pages/Checkout/Checkout'; import OrderSuccess from '../pages/Order/OrderSuccess';
 import Profile from './Profile';
 import OrderDetail from '../pages/Order/OrderDetail';
+import NewsDetail from '../pages/News/NewsDetail';
 ;
 const Main = () => (
   <main>
@@ -30,12 +31,12 @@ const Main = () => (
       <Route path="/cart" element={<Cart />} />
       <Route path="/promotions" element={<PromotionPage />} />
       <Route path="/AboutPage" element={<AboutPage />} />
-      <Route path="/blog" element={<NewsPage />} />
+      <Route path="/new" element={<NewsPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order-success" element={<OrderSuccess />} />
       <Route path="/orders/:orderId" element={<OrderDetail />} />
-
+      <Route path="/news/:id" element={<NewsDetail />} />   
       <Route path="/profile" element={<Profile />} />
 
     </Routes>

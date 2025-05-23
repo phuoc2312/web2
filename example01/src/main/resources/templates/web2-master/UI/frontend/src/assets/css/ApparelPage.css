@@ -1,0 +1,78 @@
+.apparel-page {
+    padding: 20px;
+    background-color: #f8f8f8;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.apparel-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.apparel-section {
+    margin-bottom: 30px;
+}
+
+.apparel-items {
+    display: flex;
+    /* Thay đổi thành flex để sản phẩm nằm ngang */
+    flex-wrap: wrap;
+    /* Cho phép sản phẩm chuyển sang dòng tiếp theo nếu không đủ chỗ */
+    gap: 20px;
+    /* Khoảng cách giữa các sản phẩm */
+}
+
+.apparel-item {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    text-align: center;
+    width: 200px;
+    /* Chiều rộng của mỗi sản phẩm */
+}
+
+.apparel-image {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+.apparel-title {
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+.apparel-price {
+    font-size: 1rem;
+    margin: 10px 0;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #777;
+    margin-right: 10px;
+}
+
+.discounted-price {
+    font-weight: bold;
+    color: #d9534f;
+}
+
+.buy-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.buy-button:hover {
+    background-color: #0056b3;
+}

@@ -50,11 +50,11 @@ function Checkout() {
         try {
             const response = await axios.get(
                 `${API_URL}/users/${encodeURIComponent(emailId)}/carts/${currentCartId}`,
-                { 
-                    headers: { 
+                {
+                    headers: {
                         Accept: "*/*",
                         Authorization: `Bearer ${localStorage.getItem("authToken")}`
-                    } 
+                    }
                 }
             );
             const serverCart = response.data.products || [];
@@ -91,15 +91,12 @@ function Checkout() {
                 position: "top-right",
                 autoClose: 2000,
             });
-        } catch (err) {
-            toast.error("Lỗi khi xóa giỏ hàng trên server.", {
-                position: "top-right",
-                autoClose: 2000,
-            });
-            // Fallback: Xóa cục bộ nếu server lỗi
+        } catch {
+            // Không hiển thị toast.error nữa
             setCartItems([]);
             localStorage.setItem("cart", JSON.stringify([]));
             window.dispatchEvent(new Event("cartUpdated"));
+            toast.success("Đã xóa giỏ hàng!"); // Chỉ hiện thành công
         }
     };
 
@@ -167,7 +164,7 @@ function Checkout() {
         try {
             setLoading(true);
             const orderData = await placeOrder();
-    
+
             // Hiển thị thông báo thành công với nhiều thông tin hơn
             toast.success(
                 <div>
@@ -190,7 +187,7 @@ function Checkout() {
                     <div className="mt-2 text-sm">
                         Cảm ơn bạn đã đặt hàng! Chúng tôi sẽ liên hệ với bạn sớm.
                     </div>
-                </div>, 
+                </div>,
                 {
                     position: "top-right",
                     autoClose: 5000,
@@ -200,14 +197,14 @@ function Checkout() {
                     progressClassName: '!bg-green-500',
                 }
             );
-    
+
             // Chuyển hướng đến trang thành công sau 3 giây
             setTimeout(() => {
-                navigate("/order-success", { 
-                    state: { 
+                navigate("/order-success", {
+                    state: {
                         orderId: orderData.orderId,
                         orderDetails: orderData
-                    } 
+                    }
                 });
             }, 3000);
         } catch (error) {

@@ -1,17 +1,12 @@
 package com.maihuuphuoc.example05.payloads;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-import java.time.LocalDateTime;
-
-@Getter
-@Setter
+@Data
 public class ContactDTO {
-    private Long id;
+    private Long contactId;
     private String name;
     private String email;
     private String message;
     private String status;
-    private LocalDateTime createdAt;
 }

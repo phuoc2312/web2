@@ -257,7 +257,7 @@ export default function Header() {
                     </li>
                     <li>
                         <Link
-                            to="/blog"
+                            to="/new"
                             className="text-gray-700 hover:text-green-600 font-medium transition-colors duration-200"
                         >
                             Tin tức

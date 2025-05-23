@@ -2,38 +2,42 @@ package com.maihuuphuoc.example05.controller;
 
 import com.maihuuphuoc.example05.payloads.ConfigDTO;
 import com.maihuuphuoc.example05.service.ConfigService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/config")
+@RequestMapping("/api")
+@SecurityRequirement(name = "E-Commerce Application")
+@CrossOrigin(origins = "*")
 public class ConfigController {
+
     @Autowired
     private ConfigService configService;
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PostMapping
+    @PostMapping("/admin/config")
     public ResponseEntity<ConfigDTO> createConfig(@RequestBody ConfigDTO configDTO) {
-        return ResponseEntity.ok(configService.createConfig(configDTO));
+        ConfigDTO savedConfigDTO = configService.createConfig(configDTO);
+        return new ResponseEntity<>(savedConfigDTO, HttpStatus.CREATED);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/public/config/{id}")
     public ResponseEntity<ConfigDTO> getConfigById(@PathVariable Long id) {
-        return ResponseEntity.ok(configService.getConfigById(id));
+        ConfigDTO configDTO = configService.getConfigById(id);
+        return new ResponseEntity<>(configDTO, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/{id}")
+    @PutMapping("/admin/config/{id}")
     public ResponseEntity<ConfigDTO> updateConfig(@PathVariable Long id, @RequestBody ConfigDTO configDTO) {
-        return ResponseEntity.ok(configService.updateConfig(id, configDTO));
+        ConfigDTO updatedConfigDTO = configService.updateConfig(id, configDTO);
+        return new ResponseEntity<>(updatedConfigDTO, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteConfig(@PathVariable Long id) {
-        configService.deleteConfig(id);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/admin/config/{id}")
+    public ResponseEntity<String> deleteConfig(@PathVariable Long id) {
+        String status = configService.deleteConfig(id);
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
 }

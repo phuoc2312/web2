@@ -6,5 +6,5 @@ public interface ConfigService {
     ConfigDTO createConfig(ConfigDTO configDTO);
     ConfigDTO getConfigById(Long id);
     ConfigDTO updateConfig(Long id, ConfigDTO configDTO);
-    void deleteConfig(Long id);
+    String deleteConfig(Long id);
 }

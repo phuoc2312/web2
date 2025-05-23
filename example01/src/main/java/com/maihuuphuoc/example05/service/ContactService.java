@@ -2,10 +2,12 @@ package com.maihuuphuoc.example05.service;
 
 import com.maihuuphuoc.example05.payloads.ContactDTO;
 import com.maihuuphuoc.example05.payloads.ContactResponse;
+import java.util.List;
 
 public interface ContactService {
-    ContactDTO createContact(ContactDTO contactDTO);
-    ContactDTO getContactById(Long id);
+    ContactDTO createContact(ContactDTO dto);
     ContactResponse getAllContacts(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
-    ContactDTO updateContactStatus(Long id, String status);
+    ContactDTO getContactById(Long id);
+    String deleteContact(Long id);
+    ContactDTO updateContact(Long id, ContactDTO dto);
 }

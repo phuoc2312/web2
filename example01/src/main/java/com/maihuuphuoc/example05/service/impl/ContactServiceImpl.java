@@ -1,7 +1,6 @@
 package com.maihuuphuoc.example05.service.impl;
 
 import com.maihuuphuoc.example05.entity.Contact;
-import com.maihuuphuoc.example05.entity.Contact.ContactStatus;
 import com.maihuuphuoc.example05.exceptions.APIException;
 import com.maihuuphuoc.example05.exceptions.ResourceNotFoundException;
 import com.maihuuphuoc.example05.payloads.ContactDTO;
@@ -20,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ContactServiceImpl implements ContactService {
+
     @Autowired
     private ContactRepo contactRepo;
 
@@ -27,17 +27,15 @@ public class ContactServiceImpl implements ContactService {
     private ModelMapper modelMapper;
 
     @Override
-    public ContactDTO createContact(ContactDTO contactDTO) {
-        Contact contact = modelMapper.map(contactDTO, Contact.class);
+    public ContactDTO createContact(ContactDTO dto) {
+        // Kiểm tra trùng email (tùy chọn, để đồng bộ với Category và Blog)
+        if (contactRepo.findByEmail(dto.getEmail()).isPresent()) {
+            throw new APIException("Liên hệ với email '" + dto.getEmail() + "' đã tồn tại!");
+        }
+        Contact contact = modelMapper.map(dto, Contact.class);
+        contact.setStatus("NEW");
         Contact savedContact = contactRepo.save(contact);
         return modelMapper.map(savedContact, ContactDTO.class);
-    }
-
-    @Override
-    public ContactDTO getContactById(Long id) {
-        Contact contact = contactRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contact", "id", id));
-        return modelMapper.map(contact, ContactDTO.class);
     }
 
     @Override
@@ -45,6 +43,9 @@ public class ContactServiceImpl implements ContactService {
         Sort sort = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
         PageRequest pageable = PageRequest.of(pageNumber, pageSize, sort);
         Page<Contact> contactPage = contactRepo.findAll(pageable);
+        if (contactPage.getContent().isEmpty()) {
+            throw new APIException("Không có liên hệ nào được tạo!");
+        }
         List<ContactDTO> contactDTOs = contactPage.getContent().stream()
                 .map(contact -> modelMapper.map(contact, ContactDTO.class))
                 .collect(Collectors.toList());
@@ -59,14 +60,28 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
-    public ContactDTO updateContactStatus(Long id, String status) {
+    public ContactDTO getContactById(Long id) {
         Contact contact = contactRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact", "id", id));
-        try {
-            contact.setStatus(ContactStatus.valueOf(status));
-        } catch (IllegalArgumentException e) {
-            throw new APIException("Invalid status: " + status);
-        }
+        return modelMapper.map(contact, ContactDTO.class);
+    }
+
+    @Override
+    public String deleteContact(Long id) {
+        Contact contact = contactRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contact", "id", id));
+        contactRepo.delete(contact);
+        return "Contact with id: " + id + " deleted successfully!";
+    }
+
+    @Override
+    public ContactDTO updateContact(Long id, ContactDTO dto) {
+        Contact contact = contactRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contact", "id", id));
+        contact.setName(dto.getName());
+        contact.setEmail(dto.getEmail());
+        contact.setMessage(dto.getMessage());
+        contact.setStatus(dto.getStatus());
         Contact updatedContact = contactRepo.save(contact);
         return modelMapper.map(updatedContact, ContactDTO.class);
     }

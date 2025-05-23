@@ -52,9 +52,10 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
-    public void deleteConfig(Long id) {
+    public String deleteConfig(Long id) {
         Config config = configRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Config", "id", id));
         configRepo.delete(config);
+        return "Config with id: " + id + " deleted successfully!";
     }
 }
