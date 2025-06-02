@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
+
+// Tách cấu hình API
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 
 const NewsPage = () => {
   const [articles, setArticles] = useState([]);
@@ -10,36 +13,48 @@ const NewsPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Gọi API để lấy danh sách bài viết
-  useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get("http://localhost:8080/api/public/blogs", {
-          params: {
-            pageNumber,
-            pageSize,
-            sortBy: "createdAt",
-            sortOrder: "desc", // Bài mới nhất trước
-          },
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const { content, totalPages } = response.data;
-        setArticles(content);
-        setTotalPages(totalPages);
-      } catch (error) {
-        toast.error("Không thể tải tin tức!");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchArticles();
+  // Hàm lấy danh sách bài viết với AbortController
+  const fetchArticles = useCallback(async (signal) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/api/public/blogs`, {
+        params: {
+          pageNumber,
+          pageSize,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal, // Hủy yêu cầu nếu component unmount
+      });
+      const { content, totalPages } = response.data;
+      setArticles(content);
+      setTotalPages(totalPages);
+    } catch (error) {
+      if (axios.isCancel(error)) return; // Bỏ qua nếu yêu cầu bị hủy
+      const errorMessage =
+        error.response?.status === 404
+          ? "Không tìm thấy tin tức!"
+          : "Lỗi khi tải tin tức. Vui lòng thử lại!";
+      toast.error(errorMessage);
+      console.error("Error fetching blogs:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [pageNumber, pageSize]);
+
+  // Gọi API với cleanup để tránh memory leak
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchArticles(controller.signal);
+    return () => controller.abort(); // Hủy yêu cầu khi component unmount
+  }, [fetchArticles]);
 
   // Format ngày
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN", {
       day: "2-digit",
@@ -49,17 +64,75 @@ const NewsPage = () => {
   };
 
   // Xử lý phân trang
-  const handlePreviousPage = () => {
-    if (pageNumber > 0) {
-      setPageNumber(pageNumber - 1);
+  const handlePageChange = (page) => {
+    if (page >= 0 && page < totalPages) {
+      setPageNumber(page);
     }
   };
 
-  const handleNextPage = () => {
-    if (pageNumber < totalPages - 1) {
-      setPageNumber(pageNumber + 1);
+  // Tạo danh sách số trang
+  const renderPagination = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    const startPage = Math.max(0, pageNumber - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages);
+
+    for (let i = startPage; i < endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`px-3 py-1 rounded-md ${
+            pageNumber === i
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-blue-100"
+          }`}
+        >
+          {i + 1}
+        </button>
+      );
     }
+
+    return (
+      <div className="flex justify-center space-x-2 mb-16">
+        <button
+          onClick={() => handlePageChange(pageNumber - 1)}
+          disabled={pageNumber === 0}
+          className={`px-4 py-2 rounded-lg ${
+            pageNumber === 0
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
+          Trang trước
+        </button>
+        {pages}
+        <button
+          onClick={() => handlePageChange(pageNumber + 1)}
+          disabled={pageNumber >= totalPages - 1}
+          className={`px-4 py-2 rounded-lg ${
+            pageNumber >= totalPages - 1
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
+          Trang sau
+        </button>
+      </div>
+    );
   };
+
+  // Skeleton loading
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+      <div className="w-full h-48 bg-gray-200"></div>
+      <div className="p-6">
+        <div className="h-6 bg-gray-200 rounded mb-2"></div>
+        <div className="h-4 bg-gray-200 rounded mb-4"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+      </div>
+    </div>
+  );
 
   return (
     <section className="bg-gray-50 min-h-screen py-12">
@@ -99,7 +172,11 @@ const NewsPage = () => {
 
         {/* Danh sách bài viết */}
         {loading ? (
-          <div className="text-center text-gray-600">Đang tải tin tức...</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {[...Array(9)].map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </div>
         ) : articles.length === 0 ? (
           <div className="text-center text-gray-600">Không có tin tức nào!</div>
         ) : (
@@ -112,8 +189,16 @@ const NewsPage = () => {
                 <Link to={`/news/${article.id}`}>
                   <div className="relative overflow-hidden">
                     <img
-                      src={article.image || "https://via.placeholder.com/300"}
+                      src={
+                        article.image && article.image !== "default.png"
+                          ? `${API_BASE_URL}/api/public/images/${article.image}`
+                          : "https://via.placeholder.com/300"
+                      }
                       alt={article.title}
+                      onError={(e) => {
+                        console.warn(`Failed to load image: ${article.image}`);
+                        e.target.src = "https://via.placeholder.com/300";
+                      }}
                       className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
@@ -121,11 +206,11 @@ const NewsPage = () => {
                 <div className="p-6">
                   <Link to={`/news/${article.id}`}>
                     <h2 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 line-clamp-2 mb-2">
-                      {article.title}
+                      {article.title || "Không có tiêu đề"}
                     </h2>
                   </Link>
                   <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                    {article.content}
+                    {article.content || "Không có nội dung"}
                   </p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">
@@ -146,35 +231,7 @@ const NewsPage = () => {
         )}
 
         {/* Phân trang */}
-        {totalPages > 1 && (
-          <div className="flex justify-center space-x-4 mb-16">
-            <button
-              onClick={handlePreviousPage}
-              disabled={pageNumber === 0}
-              className={`px-4 py-2 rounded-lg ${
-                pageNumber === 0
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-            >
-              Trang trước
-            </button>
-            <span className="text-gray-600">
-              Trang {pageNumber + 1} / {totalPages}
-            </span>
-            <button
-              onClick={handleNextPage}
-              disabled={pageNumber >= totalPages - 1}
-              className={`px-4 py-2 rounded-lg ${
-                pageNumber >= totalPages - 1
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-            >
-              Trang sau
-            </button>
-          </div>
-        )}
+        {totalPages > 1 && renderPagination()}
 
         {/* Lời kêu gọi hành động */}
         <div className="text-center bg-blue-600 text-white py-8 rounded-lg">
