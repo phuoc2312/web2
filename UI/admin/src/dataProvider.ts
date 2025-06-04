@@ -96,9 +96,15 @@ const httpClient = {
 };
 
 export const dataProvider: DataProvider = {
+  // src/dataProvider.ts (chỉ hàm getList)
   getList: async (resource: string, { pagination = {}, sort = {}, filter = {} }) => {
     const { page = 1, perPage = 25 } = pagination;
-    const { field = resource === 'orders' ? 'orderDate' : 'id', order = 'DESC' } = sort;
+    const defaultSortField = resource === 'orders' ? 'orderDate' : resource === 'contacts' ? 'contactId' : 'id';
+    const { field = defaultSortField, order = 'ASC' } = sort;
+
+    console.log('Resource:', resource); // Log resource
+    console.log('Sort params:', sort); // Log sort params
+    console.log('Selected field:', field); // Log field được chọn
 
     const idFieldMapping: { [key: string]: string } = {
       products: 'productId',
@@ -106,6 +112,7 @@ export const dataProvider: DataProvider = {
       carts: 'cartId',
       orders: 'orderId',
       BlogPosts: 'id',
+      contacts: 'contactId',
     };
 
     const idField = idFieldMapping[resource] || 'id';
@@ -119,12 +126,10 @@ export const dataProvider: DataProvider = {
 
     let url: string;
     const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
-    if (filter && filter.search) {
-      const keyword = filter.search;
-      delete query.search;
-      url = `${apiUrl}/public/${resourceEndpoint}/keyword/${encodeURIComponent(keyword)}?${new URLSearchParams(
-        query
-      ).toString()}`;
+    if (filter && filter.status && resource === 'contacts') {
+      const status = filter.status;
+      delete query.status;
+      url = `${apiUrl}/public/${resourceEndpoint}?status=${encodeURIComponent(status)}&${new URLSearchParams(query).toString()}`;
     } else if (filter && filter.categoryId) {
       const categoryId = filter.categoryId;
       delete query.categoryId;
@@ -139,7 +144,9 @@ export const dataProvider: DataProvider = {
       }
     }
 
+    console.log('Request URL:', url); // Log URL
     const response = await httpClient.get(url);
+    console.log('API response:', response.json); // Log response
     const baseUrl = resource === 'BlogPosts' ? `${apiUrl}/public/images/` : `${apiUrl}/public/products/image/`;
     let data;
     if (resource === 'carts') {
@@ -165,7 +172,6 @@ export const dataProvider: DataProvider = {
       total: response.json.totalElements,
     };
   },
-
   getOne: async (resource: string, params: GetOneParams): Promise<GetOneResult> => {
     const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
     let url: string;
@@ -205,9 +211,9 @@ export const dataProvider: DataProvider = {
           specialPrice: product.specialPrice,
           category: product.category
             ? {
-                id: product.category.categoryId,
-                name: product.category.categoryName,
-              }
+              id: product.category.categoryId,
+              name: product.category.categoryName,
+            }
             : null,
         })),
       };
@@ -274,12 +280,11 @@ export const dataProvider: DataProvider = {
   update: async (resource: string, params: UpdateParams): Promise<UpdateResult> => {
     const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
     const { data, id } = params;
-    const token = localStorage.getItem('jwt-token');
 
     console.log('Update data:', data); // Ghi log dữ liệu gửi đi
 
     if (resource === 'BlogPosts' && data.image instanceof File) {
-      // Cập nhật hình ảnh
+      // Cập nhật hình ảnh cho BlogPosts
       const url = `${apiUrl}/admin/${resourceEndpoint}/${id}/image`;
       const formData = new FormData();
       formData.append('image', data.image);
@@ -292,23 +297,44 @@ export const dataProvider: DataProvider = {
         console.error('Image update failed:', error.response?.data, error.response?.status);
         throw new Error(`Cập nhật hình ảnh thất bại: ${error.response?.data?.message || error.message}`);
       }
-    } else {
-      // Cập nhật nội dung bài viết
-      const url = `${apiUrl}/admin/${resourceEndpoint}/${id}`;
-      const updateData = {
-        title: data.title,
-        content: data.content,
-        authorEmail: data.authorEmail,
-      };
+    } else if (resource === 'orders') {
+      // Cập nhật trạng thái đơn hàng
+      if (!data.email || !data.orderStatus) {
+        throw new Error('Thiếu email hoặc orderStatus trong dữ liệu cập nhật');
+      }
+      const url = `${apiUrl}/admin/users/${encodeURIComponent(data.email)}/orders/${id}/orderStatus/${encodeURIComponent(data.orderStatus)}`;
       try {
-        const result = await httpClient.put(url, updateData);
-        return { data: { id, ...result.json } };
+        const result = await httpClient.put(url, {});
+        return {
+          data: {
+            id,
+            orderId: result.json.orderId,
+            email: result.json.email,
+            orderItems: result.json.orderItems,
+            orderDate: result.json.orderDate,
+            payment: result.json.payment,
+            totalAmount: result.json.totalAmount,
+            orderStatus: result.json.orderStatus
+          }
+        };
+      } catch (error: any) {
+        console.error('Order status update failed:', error.response?.data, error.response?.status);
+        throw new Error(`Cập nhật trạng thái đơn hàng thất bại: ${error.response?.data?.message || error.message}`);
+      }
+    } else {
+      // Cập nhật thông tin cho các resource khác (bao gồm contacts)
+      const url = `${apiUrl}/admin/${resourceEndpoint}/${id}`;
+      try {
+        const result = await httpClient.put(url, data);
+        const idField = resource === 'contacts' ? 'contactId' : 'id';
+        return { data: { [idField]: id, ...result.json } };
       } catch (error: any) {
         console.error('Content update failed:', error.response?.data, error.response?.status);
         throw new Error(`Cập nhật nội dung thất bại: ${error.response?.data?.message || error.message}`);
       }
     }
   },
+
 
   delete: async <RecordType extends RaRecord = any>(
     resource: string,

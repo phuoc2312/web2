@@ -1,7 +1,7 @@
 // src/component/Contact/ContactShow.tsx
 import React from 'react';
 import { Show, SimpleShowLayout, TextField, EmailField, FunctionField } from 'react-admin';
-
+import ReplyButton from './ReplyButton';
 export const ContactShow = () => (
   <Show>
     <SimpleShowLayout>
@@ -13,6 +13,7 @@ export const ContactShow = () => (
         label="Trạng thái"
         render={(record: any) => (record.status === 'NEW' ? 'Mới' : record.status)}
       />
+         <ReplyButton />
     </SimpleShowLayout>
   </Show>
 );

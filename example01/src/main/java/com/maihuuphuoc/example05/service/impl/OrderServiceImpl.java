@@ -168,4 +168,10 @@ public class OrderServiceImpl implements OrderService {
         return modelMapper.map(order, OrderDTO.class);
     }
 
+    @Override
+    public void deleteOrder(Long orderId) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+        orderRepo.delete(order);
+    }
 }

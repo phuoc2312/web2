@@ -1,4 +1,3 @@
-
 package com.maihuuphuoc.example05.controller;
 
 import java.util.List;
@@ -6,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +44,7 @@ public class OrderController {
         OrderResponse orderResponse = orderService.getAllOrders(pageNumber, pageSize, sortBy, sortOrder);
         return new ResponseEntity<OrderResponse>(orderResponse, HttpStatus.OK);
     }
+
     @GetMapping("/admin/orders/{orderId}")
     public ResponseEntity<OrderDTO> getOrderByIdForAdmin(@PathVariable Long orderId) {
         OrderDTO order = orderService.getOrderById(orderId);
@@ -53,6 +54,7 @@ public class OrderController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
     @GetMapping("public/users/{emailId}/orders")
     public ResponseEntity<List<OrderDTO>> getOrdersByUser(@PathVariable String emailId) {
         List<OrderDTO> orders = orderService.getOrdersByUser(emailId);
@@ -70,5 +72,11 @@ public class OrderController {
             @PathVariable String orderStatus) {
         OrderDTO order = orderService.updateOrder(emailId, orderId, orderStatus);
         return new ResponseEntity<OrderDTO>(order, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/admin/orders/{id}")
+    public ResponseEntity<String> deleteOrder(@PathVariable("id") Long orderId) {
+        orderService.deleteOrder(orderId);
+        return new ResponseEntity<>("Order with id: " + orderId + " deleted successfully!", HttpStatus.OK);
     }
 }

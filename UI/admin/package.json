@@ -10,6 +10,7 @@
     "format": "prettier --write ./src"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@react-pdf/renderer": "^4.2.1",
     "admin": "file:",
     "axios": "^1.7.9",

@@ -26,29 +26,24 @@ const Profile = () => {
 
     useEffect(() => {
         fetchUserData();
-        if (activeTab === 'orders') {
-            fetchOrders();
-        }
+        if (activeTab === 'orders') fetchOrders();
     }, [activeTab]);
 
     const fetchUserData = async () => {
         try {
             const email = localStorage.getItem('authEmail');
             const token = localStorage.getItem('authToken');
-
             if (!email || !token) {
                 toast.error('Vui lòng đăng nhập lại');
                 navigate('/login');
                 return;
             }
-
             const response = await axios.get(`${API_URL}/users/email/${encodeURIComponent(email)}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': '*/*'
                 }
             });
-
             const userData = response.data;
             setUser(userData);
             setFormData({
@@ -74,18 +69,16 @@ const Profile = () => {
         try {
             const email = localStorage.getItem('authEmail');
             const token = localStorage.getItem('authToken');
-
             const response = await axios.get(`${API_URL}/users/${encodeURIComponent(email)}/orders`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': '*/*'
                 }
             });
-
             setOrders(response.data);
         } catch (error) {
             console.error('Error fetching orders:', error);
-            toast.error('Không thể tải lịch sử đơn hàng');
+
         }
     };
 
@@ -110,15 +103,27 @@ const Profile = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (formData.address.city.length < 4) {
+            toast.error('Tên thành phố phải có ít nhất 4 ký tự');
+            return;
+        }
+        if (formData.address.pincode.length < 6) {
+            toast.error('Mã bưu điện phải có ít nhất 6 ký tự');
+            return;
+        }
+
         try {
             const token = localStorage.getItem('authToken');
             const response = await axios.put(
-                `${API_URL}/users/${user.userId}`,
+                `http://localhost:8080/api/users/${user.userId}`,
                 {
+                    userId: user.userId,
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     mobileNumber: formData.mobileNumber,
-                    address: formData.address
+                    email: user.email,
+                    address: formData.address,
                 },
                 {
                     headers: {
@@ -128,29 +133,30 @@ const Profile = () => {
                     }
                 }
             );
-
             setUser(response.data);
             setIsEditing(false);
             toast.success('Cập nhật thông tin thành công!');
         } catch (error) {
             console.error('Error updating profile:', error);
-            toast.error('Cập nhật thông tin thất bại');
+            if (error.response && error.response.data && error.response.data.message) {
+                const msg = error.response.data.message;
+                if (msg.includes('City name must contain')) {
+                    toast.error('Tên thành phố phải có ít nhất 4 ký tự');
+                } else if (msg.includes('Pincode must contain')) {
+                    toast.error('Mã bưu điện phải có ít nhất 6 ký tự');
+                } else {
+                    toast.error('Cập nhật thất bại: ' + msg);
+                }
+            } else {
+                toast.error('Đã xảy ra lỗi khi cập nhật thông tin');
+            }
         }
     };
-
-
 
     const formatAddress = (address) => {
         if (!address) return 'Chưa cập nhật';
         const { street, buildingName, city, state, country, pincode } = address;
-        return [
-            street,
-            buildingName,
-            city,
-            state,
-            country,
-            pincode
-        ].filter(Boolean).join(', ');
+        return [street, buildingName, city, state, country, pincode].filter(Boolean).join(', ');
     };
 
     if (!user) {
@@ -438,8 +444,8 @@ const Profile = () => {
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.orderStatus === 'Order Accepted'
-                                                                    ? 'bg-green-100 text-green-800'
-                                                                    : 'bg-yellow-100 text-yellow-800'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
                                                                 }`}>
                                                                 {order.orderStatus}
                                                             </span>

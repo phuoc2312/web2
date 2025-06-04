@@ -1,5 +1,6 @@
 package com.maihuuphuoc.example05.service.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -163,51 +164,55 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO updateUser(Long userId, UserDTO userDTO) {
         try {
-            // Find user by ID
+            System.out.println("=== [LOG] userDTO nhận vào: " + userDTO);
+
             User user = userRepo.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-            // Update user information from UserDTO
+            System.out.println(
+                    "=== [LOG] User entity trước khi cập nhật: id=" + user.getUserId() + ", email=" + user.getEmail());
+            if (userDTO.getEmail() != null) {
+                user.setEmail(userDTO.getEmail());
+            }
             user.setEmail(userDTO.getEmail());
             user.setLastName(userDTO.getLastName());
+            user.setFirstName(userDTO.getFirstName());
+            user.setMobileNumber(userDTO.getMobileNumber());
+            System.out.println("=== [LOG] User sau khi set thông tin cơ bản: id=" + user.getUserId() + ", email="
+                    + user.getEmail());
 
-            // Update password if provided
             if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
                 user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+                System.out.println("=== [LOG] Đã cập nhật password");
             }
 
-            // Update other properties of User from UserDTO
-            // e.g., user.setPhoneNumber(userDTO.getPhoneNumber());
-            // e.g., user.setDateOfBirth(userDTO.getDateOfBirth());
-
-            // Update address if provided
             if (userDTO.getAddress() != null) {
                 Address address = modelMapper.map(userDTO.getAddress(), Address.class);
-                // If needed, save or update the address in the repository
-                // addressRepo.save(address);
-                user.setAddresses(List.of(address));
+                // Lưu địa chỉ vào cơ sở dữ liệu trước
+                address = addressRepo.save(address);
+                List<Address> addresses = new ArrayList<>();
+                addresses.add(address);
+                user.setAddresses(addresses);
+                System.out.println("=== [LOG] Đã cập nhật address: id=" + address.getAddressId() + ", street="
+                        + address.getStreet());
             }
 
-            // Update cart if provided
             if (userDTO.getCart() != null) {
                 Cart cart = modelMapper.map(userDTO.getCart(), Cart.class);
-                // If needed, update the cart in the repository or service
-                // cartService.updateCart(cart);
                 user.setCart(cart);
+                System.out.println("=== [LOG] Đã cập nhật cart: id=" + cart.getCartId());
             }
 
-            // Save the updated user
+            System.out.println(
+                    "=== [LOG] User entity trước khi save: id=" + user.getUserId() + ", email=" + user.getEmail());
+
             User updatedUser = userRepo.save(user);
 
-            // Map back to UserDTO
             UserDTO updatedUserDTO = modelMapper.map(updatedUser, UserDTO.class);
 
-            // If address was updated, convert it to AddressDTO
             if (updatedUser.getAddresses() != null && !updatedUser.getAddresses().isEmpty()) {
                 updatedUserDTO.setAddress(modelMapper.map(updatedUser.getAddresses().get(0), AddressDTO.class));
             }
 
-            // If cart was updated, convert it to CartDTO
             if (updatedUser.getCart() != null) {
                 CartDTO cartDTO = modelMapper.map(updatedUser.getCart(), CartDTO.class);
 
@@ -219,9 +224,12 @@ public class UserServiceImpl implements UserService {
                 updatedUserDTO.setCart(cartDTO);
             }
 
+            System.out.println("=== [LOG] updateUser thành công, trả về userId: " + updatedUserDTO.getUserId());
+
             return updatedUserDTO;
         } catch (Exception e) {
-            throw new APIException("Error updating user with id: " + userId);
+            e.printStackTrace();
+            throw new APIException("Error updating user with id: " + userId + " | " + e.getMessage());
         }
     }
 
