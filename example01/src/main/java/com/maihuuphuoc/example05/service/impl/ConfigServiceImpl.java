@@ -7,6 +7,8 @@ import com.maihuuphuoc.example05.repository.ConfigRepo;
 import com.maihuuphuoc.example05.service.ConfigService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -39,6 +41,12 @@ public class ConfigServiceImpl implements ConfigService {
     }
 
     @Override
+    public Page<ConfigDTO> getAllConfigs(Pageable pageable) {
+        Page<Config> configPage = configRepo.findAll(pageable);
+        return configPage.map(config -> modelMapper.map(config, ConfigDTO.class));
+    }
+
+    @Override
     public ConfigDTO updateConfig(Long id, ConfigDTO configDTO) {
         Config config = configRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Config", "id", id));
@@ -47,6 +55,7 @@ public class ConfigServiceImpl implements ConfigService {
         config.setPhone(configDTO.getPhone());
         config.setAddress(configDTO.getAddress());
         config.setHotline(configDTO.getHotline());
+        config.setStatus(configDTO.getStatus());
         Config updatedConfig = configRepo.save(config);
         return modelMapper.map(updatedConfig, ConfigDTO.class);
     }

@@ -21,5 +21,4 @@ public interface CartService {
 
     CartDTO getCartByEmail(String email);
 
-    
 }

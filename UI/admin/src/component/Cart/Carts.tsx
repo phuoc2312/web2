@@ -28,8 +28,8 @@ export const CartList = () => {
     return (
         <List>
             <Datagrid rowClick={handleRowClick}>
-                <TextField source="cart.cartId" label="Cart ID" />
-                <TextField source="cart.totalPrice" label="Total Price" />
+                <TextField source="cartId" label="Cart ID" />
+                <TextField source="totalPrice" label="Total Price" />
                 <TextField source="email" label="Email" />
             </Datagrid>
         </List>

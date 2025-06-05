@@ -16,6 +16,7 @@ public class CartDTO {
     private Double totalPrice = 0.0;
     private Integer quantity = 0; // Tổng số lượng sản phẩm trong giỏ hàng (từ cart_items)
     private List<ProductDTO> products = new ArrayList<>();
+    private String email;
     private String message;
 
     // Constructor cho trường hợp không tìm thấy giỏ hàng

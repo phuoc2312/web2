@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Admin, Resource, CustomRoutes } from "react-admin";
 import { Route } from "react-router-dom";
 import { Layout } from "./Layout";
@@ -8,6 +7,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ContactMailIcon from '@mui/icons-material/ContactMail';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { dataProvider } from "./dataProvider";
 import { Dashboard } from "./component/Dashboard/Dashboard";
 import { authProvider } from "./authProvider";
@@ -16,9 +16,10 @@ import { ProductList, ProductCreate, ProductEdit } from "./component/Product/pro
 import { CartList, CartShow } from "./component/Cart/Carts";
 import ProductImageUpdate from "./component/Product/ProductImageUpdate";
 import OrderList from "./component/Order/OrderList";
-import OrderShow from "./component/Order/OrderShow"; // Thêm dòng này
+import OrderShow from "./component/Order/OrderShow";
 import { BlogPostCreate, BlogPostEdit, BlogPostList, BlogPostShow } from "./component/Blog/BlogPost";
 import { ContactList, ContactShow } from "./component/Contact/Contacts";
+import { ConfigList, ConfigCreate, ConfigEdit } from "./component/Config/Config";
 export const App = () => (
   <Admin authProvider={authProvider} layout={Layout} dataProvider={dataProvider} dashboard={Dashboard}>
     <CustomRoutes>
@@ -51,9 +52,9 @@ export const App = () => (
     <Resource
       name="orders"
       list={OrderList}
-      show={OrderShow}  // Đảm bảo có show component
+      show={OrderShow}
       icon={ListAltIcon}
-    />        
+    />
     <Resource
       name="BlogPosts"
       list={BlogPostList}
@@ -66,8 +67,18 @@ export const App = () => (
       name="contacts"
       list={ContactList}
       show={ContactShow}
-      icon={ContactMailIcon} // Icon cho Contacts
+      icon={ContactMailIcon}
     />
+    <Resource
+      name="configs"
+      list={ConfigList}
+      create={ConfigCreate}
+      edit={ConfigEdit}
+      icon={SettingsIcon}
+
+    />
+
+
   </Admin>
 );
 

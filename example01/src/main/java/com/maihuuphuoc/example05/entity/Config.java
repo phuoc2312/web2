@@ -30,6 +30,9 @@ public class Config {
     @Column(name = "hotline")
     private String hotline;
 
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

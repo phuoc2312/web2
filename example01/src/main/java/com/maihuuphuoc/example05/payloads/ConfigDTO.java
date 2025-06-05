@@ -14,6 +14,7 @@ public class ConfigDTO {
     private String phone;
     private String address;
     private String hotline;
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

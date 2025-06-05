@@ -102,18 +102,34 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public List<CartDTO> getAllCarts() {
-        List<Cart> carts = cartRepo.findAll();
+        List<User> users = userRepo.findAll(); // Lấy tất cả người dùng
+        List<Cart> carts = users.stream()
+                .map(user -> {
+                    Cart cart = cartRepo.findByUser(user);
+                    if (cart == null) {
+                        // Tạo giỏ hàng mới nếu chưa có
+                        Cart newCart = new Cart();
+                        newCart.setUser(user);
+                        newCart.setTotalPrice(0.0);
+                        return cartRepo.save(newCart);
+                    }
+                    return cart;
+                })
+                .collect(Collectors.toList());
+
         if (carts.isEmpty()) {
             throw new APIException("No cart exists");
         }
 
         return carts.stream().map(cart -> {
             CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
+            cartDTO.setEmail(cart.getUser().getEmail()); // Thêm email vào CartDTO
             List<ProductDTO> products = cart.getCartItems().stream()
                     .map(item -> {
                         ProductDTO productDTO = modelMapper.map(item.getProduct(), ProductDTO.class);
                         productDTO.setCartItemQuantity(item.getQuantity() != null ? item.getQuantity() : 0);
-                        productDTO.setStock(item.getProduct().getQuantity() != null ? item.getProduct().getQuantity() : 0);
+                        productDTO.setStock(
+                                item.getProduct().getQuantity() != null ? item.getProduct().getQuantity() : 0);
                         return productDTO;
                     }).collect(Collectors.toList());
             cartDTO.setProducts(products);
@@ -226,8 +242,8 @@ public class CartServiceImpl implements CartService {
             throw new ResourceNotFoundException("Product", "productId", productId);
         }
 
-        logger.info("Found CartItem: cartItemId={}, cartId={}, productId={}, quantity={}", 
-                    cartItem.getCartItemId(), cartId, productId, cartItem.getQuantity());
+        logger.info("Found CartItem: cartItemId={}, cartId={}, productId={}, quantity={}",
+                cartItem.getCartItemId(), cartId, productId, cartItem.getQuantity());
 
         // Cập nhật totalPrice của Cart
         double itemTotal = cartItem.getProductPrice() * (cartItem.getQuantity() != null ? cartItem.getQuantity() : 0);
@@ -238,8 +254,8 @@ public class CartServiceImpl implements CartService {
         Product product = cartItem.getProduct();
         int cartItemQuantity = cartItem.getQuantity() != null ? cartItem.getQuantity() : 0;
         product.setQuantity(product.getQuantity() + cartItemQuantity);
-        logger.info("Updated product quantity: productId={}, newQuantity={}", 
-                    product.getProductId(), product.getQuantity());
+        logger.info("Updated product quantity: productId={}, newQuantity={}",
+                product.getProductId(), product.getQuantity());
 
         // Lưu Product
         productRepo.save(product);
@@ -248,8 +264,8 @@ public class CartServiceImpl implements CartService {
         // Xóa CartItem bằng truy vấn trực tiếp
         cartItemRepo.deleteCartItemByProductIdAndCartId(cartId, productId);
         cartItemRepo.flush(); // Đảm bảo lệnh DELETE được thực thi
-        logger.info("Deleted CartItem: cartItemId={}, cartId={}, productId={}", 
-                    cartItem.getCartItemId(), cartId, productId);
+        logger.info("Deleted CartItem: cartItemId={}, cartId={}, productId={}",
+                cartItem.getCartItemId(), cartId, productId);
 
         // Lưu Cart để cập nhật totalPrice
         cartRepo.save(cart);

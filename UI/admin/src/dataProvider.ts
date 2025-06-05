@@ -96,15 +96,14 @@ const httpClient = {
 };
 
 export const dataProvider: DataProvider = {
-  // src/dataProvider.ts (chỉ hàm getList)
   getList: async (resource: string, { pagination = {}, sort = {}, filter = {} }) => {
     const { page = 1, perPage = 25 } = pagination;
     const defaultSortField = resource === 'orders' ? 'orderDate' : resource === 'contacts' ? 'contactId' : 'id';
     const { field = defaultSortField, order = 'ASC' } = sort;
 
-    console.log('Resource:', resource); // Log resource
-    console.log('Sort params:', sort); // Log sort params
-    console.log('Selected field:', field); // Log field được chọn
+    console.log('Resource:', resource);
+    console.log('Sort params:', sort);
+    console.log('Selected field:', field);
 
     const idFieldMapping: { [key: string]: string } = {
       products: 'productId',
@@ -113,6 +112,7 @@ export const dataProvider: DataProvider = {
       orders: 'orderId',
       BlogPosts: 'id',
       contacts: 'contactId',
+      configs: 'id',
     };
 
     const idField = idFieldMapping[resource] || 'id';
@@ -136,7 +136,8 @@ export const dataProvider: DataProvider = {
       url = `${apiUrl}/public/categories/${categoryId}/${resourceEndpoint}?${new URLSearchParams(query).toString()}`;
     } else {
       if (resource === 'carts') {
-        url = `${apiUrl}/admin/users`;
+        url = `${apiUrl}/admin/carts?${new URLSearchParams(query).toString()}`;
+
       } else if (resource === 'orders') {
         url = `${apiUrl}/admin/orders?${new URLSearchParams(query).toString()}`;
       } else {
@@ -144,16 +145,16 @@ export const dataProvider: DataProvider = {
       }
     }
 
-    console.log('Request URL:', url); // Log URL
+    console.log('Request URL:', url);
     const response = await httpClient.get(url);
-    console.log('API response:', response.json); // Log response
+    console.log('API response:', response.json);
     const baseUrl = resource === 'BlogPosts' ? `${apiUrl}/public/images/` : `${apiUrl}/public/products/image/`;
     let data;
     if (resource === 'carts') {
       data = response.json.content
-        .filter((item: any) => item && item.cart)
+        .filter((item: any) => item !== null && item !== undefined)
         .map((item: any) => ({
-          id: item.cart.cartId,
+          id: item.cartId || item.id, // Sửa lại để phù hợp với cả 2 trường hợp
           ...item,
           image: item.image ? `${baseUrl}${item.image}` : null,
         }));
@@ -172,8 +173,9 @@ export const dataProvider: DataProvider = {
       total: response.json.totalElements,
     };
   },
+
   getOne: async (resource: string, params: GetOneParams): Promise<GetOneResult> => {
-    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
     let url: string;
 
     if (resource === 'carts') {
@@ -191,6 +193,7 @@ export const dataProvider: DataProvider = {
       carts: 'cartId',
       orders: 'orderId',
       BlogPosts: 'id',
+      configs: 'id',
     };
 
     const idField = idFieldMapping[resource] || 'id';
@@ -198,7 +201,7 @@ export const dataProvider: DataProvider = {
     let data;
     if (resource === 'carts') {
       data = {
-        id: result.json[idField],
+        id: result.json.cartId || result.json.id, // Sửa lại để phù hợp với cả 2 trường hợp
         totalPrice: result.json.totalPrice,
         products: result.json.products.map((product: any) => ({
           id: product.productId,
@@ -233,11 +236,12 @@ export const dataProvider: DataProvider = {
       products: 'productId',
       categories: 'categoryId',
       BlogPosts: 'id',
+      configs: 'id',
     };
     const idField = idFieldMapping[resource] || 'id';
     const baseUrl =
       resource === 'BlogPosts' ? `${apiUrl}/public/images/` : `${apiUrl}/public/products/image/`;
-    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
 
     const ids = params.ids.join(',');
     let url: string;
@@ -259,7 +263,7 @@ export const dataProvider: DataProvider = {
 
   create: async (resource: string, params: CreateParams): Promise<CreateResult> => {
     try {
-      const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+      const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
       let url: string;
       if (resource === 'products') {
         url = `${apiUrl}/admin/categories/${params.data.categoryId}/${resource}`;
@@ -278,13 +282,12 @@ export const dataProvider: DataProvider = {
   },
 
   update: async (resource: string, params: UpdateParams): Promise<UpdateResult> => {
-    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
     const { data, id } = params;
 
-    console.log('Update data:', data); // Ghi log dữ liệu gửi đi
+    console.log('Update data:', data);
 
     if (resource === 'BlogPosts' && data.image instanceof File) {
-      // Cập nhật hình ảnh cho BlogPosts
       const url = `${apiUrl}/admin/${resourceEndpoint}/${id}/image`;
       const formData = new FormData();
       formData.append('image', data.image);
@@ -298,7 +301,6 @@ export const dataProvider: DataProvider = {
         throw new Error(`Cập nhật hình ảnh thất bại: ${error.response?.data?.message || error.message}`);
       }
     } else if (resource === 'orders') {
-      // Cập nhật trạng thái đơn hàng
       if (!data.email || !data.orderStatus) {
         throw new Error('Thiếu email hoặc orderStatus trong dữ liệu cập nhật');
       }
@@ -314,15 +316,14 @@ export const dataProvider: DataProvider = {
             orderDate: result.json.orderDate,
             payment: result.json.payment,
             totalAmount: result.json.totalAmount,
-            orderStatus: result.json.orderStatus
-          }
+            orderStatus: result.json.orderStatus,
+          },
         };
       } catch (error: any) {
         console.error('Order status update failed:', error.response?.data, error.response?.status);
         throw new Error(`Cập nhật trạng thái đơn hàng thất bại: ${error.response?.data?.message || error.message}`);
       }
     } else {
-      // Cập nhật thông tin cho các resource khác (bao gồm contacts)
       const url = `${apiUrl}/admin/${resourceEndpoint}/${id}`;
       try {
         const result = await httpClient.put(url, data);
@@ -335,13 +336,12 @@ export const dataProvider: DataProvider = {
     }
   },
 
-
   delete: async <RecordType extends RaRecord = any>(
     resource: string,
     params: DeleteParams<RecordType>
   ): Promise<DeleteResult<RecordType>> => {
     try {
-      const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+      const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
       const url = `${apiUrl}/admin/${resourceEndpoint}/${params.id}`;
       await httpClient.delete(url);
       return {
@@ -358,7 +358,7 @@ export const dataProvider: DataProvider = {
     params: DeleteManyParams
   ): Promise<DeleteManyResult<RecordType>> => {
     const { ids } = params;
-    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
+    const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
 
     try {
       const deletePromises = ids.map((id) => {
