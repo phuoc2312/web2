@@ -165,7 +165,7 @@ const PromotionSectionContent = () => {
             // 7. Show success message with proper quantity
             toast.success(
                 <div>
-                    <div className="font-bold">✅ Thêm vào giỏ hàng thành công</div>
+                    <div className="font-bold"> Thêm vào giỏ hàng thành công</div>
                     <div>{productDisplayName}</div>
                     <div>Số lượng: <span className="font-bold">{qty}</span></div>
                     {item.specialPrice > 0 && (
@@ -193,7 +193,7 @@ const PromotionSectionContent = () => {
             console.error("[ERROR] addToCart:", error);
             toast.error(
                 <div>
-                    <div className="font-bold">❌ Thêm vào giỏ thất bại</div>
+                    <div className="font-bold"> Thêm vào giỏ thất bại</div>
                     <div>{error.message}</div>
                 </div>,
                 {

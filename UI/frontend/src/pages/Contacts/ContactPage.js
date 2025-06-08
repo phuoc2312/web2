@@ -31,18 +31,30 @@ const ContactPage = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/api/public/config/1", {
+        const response = await axios.get("http://localhost:8080/api/public/configs", {
+          params: {
+            pageNumber: 0,
+            pageSize: 10,
+            sortBy: "id",
+            sortOrder: "ASC",
+          },
           headers: {
             "Content-Type": "application/json",
           },
         });
-        setConfig(response.data);
-
-        // Nếu có địa chỉ trong config, thực hiện chuyển đổi sang tọa độ
-        if (response.data.address) {
-          geocodeAddress(response.data.address);
+        // Lấy cấu hình đầu tiên có status: "ACTIVE"
+        const activeConfig = response.data.content.find(config => config.status === "ACTIVE");
+        if (activeConfig) {
+          setConfig(activeConfig);
+          // Nếu có địa chỉ trong config, thực hiện chuyển đổi sang tọa độ
+          if (activeConfig.address) {
+            geocodeAddress(activeConfig.address);
+          }
+        } else {
+          toast.error("Không tìm thấy thông tin liên hệ hợp lệ!");
         }
       } catch (error) {
+        console.error("Failed to fetch configs:", error);
         toast.error("Không thể tải thông tin liên hệ!");
       }
     };
@@ -62,26 +74,15 @@ const ContactPage = () => {
           lat: parseFloat(location.lat),
           lng: parseFloat(location.lon)
         });
+      } else {
+        console.warn("Không tìm thấy tọa độ cho địa chỉ:", address);
       }
     } catch (error) {
       console.error("Lỗi khi lấy tọa độ:", error);
       toast.error("Không thể tải bản đồ. Vui lòng thử lại sau!");
     }
   };
-  useEffect(() => {
-    if (config?.address) {
-      geocodeAddress(config.address);
-    }
-  }, [config?.address]); // Theo dõi thay đổi địa chỉ
 
-  // Thêm key vào MapContainer để force re-render
-  <MapContainer
-    key={`${mapCoordinates.lat}-${mapCoordinates.lng}`} // Thêm dòng này
-    center={mapCoordinates}
-    zoom={15}
-    style={{ height: "100%", width: "100%" }}
-    scrollWheelZoom={false}
-  ></MapContainer>
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -165,7 +166,7 @@ const ContactPage = () => {
         {/* Tiêu đề */}
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 uppercase tracking-wide">
-            Liên hệ với {config?.siteName}
+            Liên hệ với {config?.siteName || "MHP Store"}
           </h1>
           <div className="w-24 h-1 bg-green-600 mt-4 mx-auto"></div>
           <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
@@ -187,7 +188,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Địa chỉ</h3>
                   <p className="text-gray-600">
-                    {config?.address}
+                    {config?.address || "Đang tải..."}
                   </p>
                 </div>
               </div>
@@ -198,7 +199,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Email</h3>
                   <p className="text-gray-600">
-                    {config?.email}
+                    {config?.email || "Đang tải..."}
                   </p>
                 </div>
               </div>
@@ -209,7 +210,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="text-lg font-medium text-gray-800">Hotline</h3>
                   <p className="text-gray-600">
-                    {config?.hotline}
+                    {config?.hotline || "Đang tải..."}
                   </p>
                 </div>
               </div>
@@ -218,6 +219,7 @@ const ContactPage = () => {
             {/* Bản đồ */}
             <div className="mt-8 h-64 rounded-lg overflow-hidden">
               <MapContainer
+                key={`${mapCoordinates.lat}-${mapCoordinates.lng}`}
                 center={mapCoordinates}
                 zoom={15}
                 style={{ height: "100%", width: "100%" }}
@@ -225,12 +227,12 @@ const ContactPage = () => {
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 <Marker position={mapCoordinates}>
                   <Popup>
-                    {config?.siteName} <br />
-                    {config?.address}
+                    {config?.siteName || "MHP Store"} <br />
+                    {config?.address || "Đang tải..."}
                   </Popup>
                 </Marker>
               </MapContainer>
@@ -313,7 +315,7 @@ const ContactPage = () => {
         {/* Lời kêu gọi hành động */}
         <div className="text-center bg-green-600 text-white py-8 rounded-lg">
           <h2 className="text-2xl font-bold mb-4">
-            Khám phá các sản phẩm tại {config?.siteName}!
+            Khám phá các sản phẩm tại {config?.siteName || "MHP Store"}!
           </h2>
           <p className="text-lg mb-6">
             Xem ngay các ưu đãi và sản phẩm chất lượng đang chờ bạn!

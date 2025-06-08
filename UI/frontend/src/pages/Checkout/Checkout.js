@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import axios from "axios";
+import emailjs from '@emailjs/browser';
 
 function Checkout() {
     const [cartItems, setCartItems] = useState([]);
@@ -76,14 +77,7 @@ function Checkout() {
 
     // Xóa tất cả sản phẩm trong giỏ hàng
     const clearCart = async () => {
-        if (!emailId || !cartId) return;
-
-        try {
-            await axios.delete(`${API_URL}/carts/${cartId}/clear`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("authToken")}`
-                }
-            });
+        if (!emailId || !cartId) {
             setCartItems([]);
             localStorage.setItem("cart", JSON.stringify([]));
             window.dispatchEvent(new Event("cartUpdated"));
@@ -91,12 +85,33 @@ function Checkout() {
                 position: "top-right",
                 autoClose: 2000,
             });
-        } catch {
-            // Không hiển thị toast.error nữa
+            return;
+        }
+
+        try {
+            await axios.delete(`${API_URL}/carts/${cartId}/clear`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`
+                }
+            });
+            console.log("Giỏ hàng đã được xóa trên server.");
+            toast.success("Đã xóa giỏ hàng!", {
+                position: "top-right",
+                autoClose: 2000,
+            });
+        } catch (error) {
+            console.warn("Không thể xóa giỏ hàng trên server:", error.message);
+            if (error.response?.status === 404) {
+                console.warn("Giỏ hàng không tồn tại hoặc endpoint không được triển khai.");
+            }
+        } finally {
             setCartItems([]);
             localStorage.setItem("cart", JSON.stringify([]));
             window.dispatchEvent(new Event("cartUpdated"));
-            toast.success("Đã xóa giỏ hàng!"); // Chỉ hiện thành công
+            toast.success("Đã xóa giỏ hàng!", {
+                position: "top-right",
+                autoClose: 2000,
+            });
         }
     };
 
@@ -132,7 +147,7 @@ function Checkout() {
 
             const response = await axios.post(
                 `${API_URL}/users/${encodeURIComponent(emailId)}/carts/${cartId}/payments/${paymentMethod}/order`,
-                {}, // Empty body as required by your API
+                {},
                 {
                     headers: {
                         "Authorization": `Bearer ${authToken}`,
@@ -143,8 +158,7 @@ function Checkout() {
             );
 
             if (response.status === 201) {
-                // Xóa giỏ hàng sau khi đặt hàng thành công
-                await clearCart();
+                console.log("Place order response:", response.data);
                 return response.data;
             } else {
                 throw new Error("Đặt hàng không thành công");
@@ -160,12 +174,64 @@ function Checkout() {
         }
     };
 
+    const sendOrderConfirmationEmail = async (orderData) => {
+        try {
+            if (!emailId || !orderData.orderId || !orderData.totalAmount || !orderData.payment?.paymentMethod || !orderData.orderStatus) {
+                throw new Error("Thiếu thông tin cần thiết để gửi email xác nhận.");
+            }
+
+            const cartItemsString = cartItems
+                .map(
+                    (item) => `${item.productName} - Số lượng: ${item.quantity} - Giá: ${getProductPrice(item).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}`
+                )
+                .join("\n") || "Không có sản phẩm";
+
+            console.log("EmailJS params:", {
+                to_email: emailId,
+                to_name: emailId || "Khách hàng",
+                order_id: orderData.orderId,
+                total_amount: orderData.totalAmount.toLocaleString("vi-VN", { style: "currency", currency: "VND" }),
+                payment_method: orderData.payment.paymentMethod.toLowerCase(),
+                order_status: orderData.orderStatus,
+                cart_items: cartItemsString,
+            });
+
+            await emailjs.send(
+                'service_rwxo0mm',
+                'template_lkw3kwb', // Đã sửa Template ID thành template_k0rcirr
+                {
+                    to_email: emailId,
+                    to_name: emailId || "Khách hàng",
+                    order_id: orderData.orderId,
+                    total_amount: orderData.totalAmount.toLocaleString("vi-VN", { style: "currency", currency: "VND" }),
+                    payment_method: orderData.payment.paymentMethod.toLowerCase(),
+                    order_status: orderData.orderStatus,
+                    cart_items: cartItemsString,
+                },
+                'tGyWcv9aFaDu0nXq7'
+            );
+            toast.success("Email xác nhận đơn hàng đã được gửi!", {
+                position: "top-right",
+                autoClose: 2000,
+            });
+        } catch (error) {
+            console.error("Lỗi khi gửi email xác nhận:", error);
+            toast.error("Không thể gửi email xác nhận đơn hàng.", {
+                position: "top-right",
+                autoClose: 2000,
+            });
+        }
+    };
+
     const handlePlaceOrder = async () => {
         try {
             setLoading(true);
             const orderData = await placeOrder();
 
-            // Hiển thị thông báo thành công với nhiều thông tin hơn
+            await sendOrderConfirmationEmail(orderData);
+
+            await clearCart();
+
             toast.success(
                 <div>
                     <div className="font-bold text-lg mb-2">Đặt hàng thành công!</div>
@@ -198,7 +264,6 @@ function Checkout() {
                 }
             );
 
-            // Chuyển hướng đến trang thành công sau 3 giây
             setTimeout(() => {
                 navigate("/order-success", {
                     state: {
@@ -317,7 +382,6 @@ function Checkout() {
                 Thanh toán ({calculateTotalQuantity()} sản phẩm)
             </h2>
             <div className="grid grid-cols-1 gap-6">
-                {/* Danh sách sản phẩm */}
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Sản phẩm trong giỏ hàng</h3>
                     <div className="divide-y divide-gray-200">
@@ -378,7 +442,6 @@ function Checkout() {
                         </div>
                     </div>
 
-                    {/* Phần thanh toán đơn giản */}
                     <div className="mt-6">
                         <div className="mb-4">
                             <label className="block text-gray-700 font-medium mb-2">

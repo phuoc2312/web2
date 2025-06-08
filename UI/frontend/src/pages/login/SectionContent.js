@@ -119,12 +119,13 @@ const SectionContent = () => {
 
                         localStorage.setItem("cartId", cartId);
 
-                        toast.success("Đăng nhập thành công! Đã lấy cartId.", {
+                        window.dispatchEvent(new Event("authChanged"));
+
+                        toast.success("Đăng nhập thành công!", {
                             position: "top-right",
                             autoClose: 3000,
                         });
                         navigate("/Home");
-                        window.location.reload();
                     } catch (cartError) {
                         console.error("Lỗi khi lấy cartId:", cartError);
                         toast.warn(

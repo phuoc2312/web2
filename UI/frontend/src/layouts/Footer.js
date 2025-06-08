@@ -7,22 +7,41 @@ import logo from "../assets/images/banners/logo.png";
 const Footer = () => {
     const currentYear = new Date().getFullYear();
     const [categories, setCategories] = useState([]);
+    const [activeConfigs, setActiveConfigs] = useState([]);
 
     useEffect(() => {
-        const params = {
+        // Fetch categories
+        const categoryParams = {
             pageNumber: 0,
             pageSize: 5,
             sortBy: "categoryId",
             sortOrder: "asc",
         };
 
-        GET_ALL("http://localhost:8080/api/public/categories", params)
+        GET_ALL("http://localhost:8080/api/public/categories", categoryParams)
             .then((response) => {
-                // Sửa lại để phù hợp với cấu trúc dữ liệu từ API
                 setCategories(response.content || []);
             })
             .catch((error) => {
                 console.error("Failed to fetch categories:", error);
+            });
+
+        // Fetch active configurations
+        const configParams = {
+            pageNumber: 0,
+            pageSize: 10,
+            sortBy: "id",
+            sortOrder: "ASC",
+        };
+
+        GET_ALL("http://localhost:8080/api/public/configs", configParams)
+            .then((response) => {
+                // Filter for configurations with status: "ACTIVE"
+                const active = (response.content || []).filter(config => config.status === "ACTIVE");
+                setActiveConfigs(active);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch configs:", error);
             });
     }, []);
 
@@ -92,23 +111,29 @@ const Footer = () => {
                         </ul>
                     </div>
 
-                    {/* Contact Info */}
+                    {/* Contact Info (from API) */}
                     <div>
                         <h3 className="text-lg font-semibold mb-4">Thông tin liên hệ</h3>
-                        <ul className="space-y-3">
-                            <li className="flex items-start">
-                                <MapPin className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
-                                <span className="text-gray-600">123 Đường Xanh, Phường 1, Quận 1, TP. Hồ Chí Minh</span>
-                            </li>
-                            <li className="flex items-center">
-                                <Phone className="h-5 w-5 text-green-600 mr-2" />
-                                <span className="text-gray-600">1900 1234</span>
-                            </li>
-                            <li className="flex items-center">
-                                <Mail className="h-5 w-5 text-green-600 mr-2" />
-                                <span className="text-gray-600">info@organicstore.com</span>
-                            </li>
-                        </ul>
+                        {activeConfigs.length > 0 ? (
+                            activeConfigs.map((config) => (
+                                <ul key={config.id} className="space-y-3">
+                                    <li className="flex items-start">
+                                        <MapPin className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
+                                        <span className="text-gray-600">{config.address}</span>
+                                    </li>
+                                    <li className="flex items-center">
+                                        <Phone className="h-5 w-5 text-green-600 mr-2" />
+                                        <span className="text-gray-600">{config.hotline}</span>
+                                    </li>
+                                    <li className="flex items-center">
+                                        <Mail className="h-5 w-5 text-green-600 mr-2" />
+                                        <span className="text-gray-600">{config.email}</span>
+                                    </li>
+                                </ul>
+                            ))
+                        ) : (
+                            <p className="text-gray-400 italic">Đang tải thông tin liên hệ...</p>
+                        )}
                     </div>
                 </div>
 

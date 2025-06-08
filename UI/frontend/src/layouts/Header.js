@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify"; // Thêm import toast
 import { GET_ALL } from "./../api/apiService";
 import logo from "../assets/images/banners/logo.png";
 import CartIcon from "./CartIcon";
@@ -8,15 +9,61 @@ export default function Header() {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("authToken"));
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isPriceDropdownOpen, setIsPriceDropdownOpen] = useState(false);
+    const [activeConfig, setActiveConfig] = useState(null);
 
     useEffect(() => {
+        // Check login status
         const loggedInStatus = localStorage.getItem("authToken");
         if (loggedInStatus) {
             setIsLoggedIn(true);
         }
+
+        // Lắng nghe sự kiện authChanged
+        const handleAuthChange = () => {
+            setIsLoggedIn(!!localStorage.getItem("authToken"));
+        };
+
+        window.addEventListener("authChanged", handleAuthChange);
+
+        // Fetch categories
+        const categoryParams = {
+            pageNumber: 0,
+            pageSize: 5,
+            sortBy: "categoryId",
+            sortOrder: "asc",
+        };
+
+        GET_ALL("http://localhost:8080/api/public/categories", categoryParams)
+            .then((response) => {
+                setCategories(response.content || []);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch categories:", error);
+            });
+
+        // Fetch active configuration
+        const configParams = {
+            pageNumber: 0,
+            pageSize: 10,
+            sortBy: "id",
+            sortOrder: "ASC",
+        };
+
+        GET_ALL("http://localhost:8080/api/public/configs", configParams)
+            .then((response) => {
+                const active = (response.content || []).find(config => config.status === "ACTIVE");
+                setActiveConfig(active || null);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch configs:", error);
+            });
+
+        // Cleanup
+        return () => {
+            window.removeEventListener("authChanged", handleAuthChange);
+        };
     }, []);
 
     const handleSubmit = (event) => {
@@ -38,39 +85,31 @@ export default function Header() {
         navigate("/ListingGrid");
     };
 
-
     const handleLogout = () => {
-        localStorage.clear(); // Xóa toàn bộ dữ liệu trong localStorage
+        localStorage.clear();
         setIsLoggedIn(false);
-        window.dispatchEvent(new Event("logout")); // Dispatch sự kiện logout
-        navigate("/Home");
+        // Gửi sự kiện authChanged khi đăng xuất
+        window.dispatchEvent(new Event("authChanged"));
+        toast.success("Đăng xuất thành công!", {
+            position: "top-right",
+            autoClose: 3000,
+        });
+        navigate("/Home", { replace: true });
     };
-
-    useEffect(() => {
-        const params = {
-            pageNumber: 0,
-            pageSize: 5,
-            sortBy: "categoryId",
-            sortOrder: "asc",
-        };
-
-        GET_ALL("http://localhost:8080/api/public/categories", params)
-            .then((response) => {
-                setCategories(response.content);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch categories:", error);
-            });
-    }, []);
-
     return (
         <header className="bg-white shadow-sm">
             {/* Top bar */}
             <div className="bg-green-50 py-2 border-b border-gray-200">
                 <div className="container mx-auto px-4 flex justify-between items-center text-sm">
                     <div className="text-gray-600">
-                        <span className="mr-4">Hotline: 1900 1234</span>
-                        <span>Email: info@organicstore.com</span>
+                        {activeConfig ? (
+                            <>
+                                <span className="mr-4">Hotline: {activeConfig.hotline}</span>
+                                <span>Email: {activeConfig.email}</span>
+                            </>
+                        ) : (
+                            <span className="text-gray-400 italic">Đang tải thông tin...</span>
+                        )}
                     </div>
                     <div className="flex items-center space-x-4">
                         {isLoggedIn ? (
@@ -120,14 +159,7 @@ export default function Header() {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Tìm kiếm sản phẩm..."
                             />
-                            <select className="border border-gray-300 px-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
-                                <option value="">Tất cả loại</option>
-                                {categories.map((category) => (
-                                    <option value={category.categoryId} key={category.categoryId}>
-                                        {category.categoryName}
-                                    </option>
-                                ))}
-                            </select>
+                       
                             <button
                                 type="submit"
                                 className="bg-green-600 text-white px-6 py-2 rounded-r-md hover:bg-green-700 transition-colors duration-200"
@@ -185,13 +217,12 @@ export default function Header() {
                         <button
                             type="submit"
                             className="bg-green-600 text-white px-6 py-2 rounded-r-md hover:bg-green-700 transition-colors duration-200"
-                        >
+                            >
                             Tìm
                         </button>
                     </form>
                 </div>
             </div>
-
 
             {/* Bottom navigation */}
             <nav className="container mx-auto px-4 py-2 hidden md:block">
@@ -237,8 +268,6 @@ export default function Header() {
                             </div>
                         )}
                     </li>
-
-
                     <li>
                         <Link
                             to="/promotions"
