@@ -205,7 +205,7 @@ const SectionContent = () => {
                             </label>
                         </div>
                         <div className="form-group">
-                            <button type="submit" className="btn btn-primary btn-block" disabled={isLoading}>
+                            <button type="submit" className="btn btn-success btn-block" disabled={isLoading}>
                                 {isLoading ? "Đang đăng nhập..." : "Login"}
                             </button>
                         </div>

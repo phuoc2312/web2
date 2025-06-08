@@ -331,7 +331,7 @@ const ProductDetail = () => {
                                                     <img
                                                         src={`http://localhost:8080/api/public/products/image/${relatedProduct.image}`}
                                                         alt={relatedProduct.productName}
-                                                        className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                                                        className="object-contain w-full h-48 p-2"
                                                     />
                                                 </div>
                                             </Link>

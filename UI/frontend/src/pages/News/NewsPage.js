@@ -234,7 +234,7 @@ const NewsPage = () => {
         {totalPages > 1 && renderPagination()}
 
         {/* Lời kêu gọi hành động */}
-        <div className="text-center bg-blue-600 text-white py-8 rounded-lg">
+        <div className="text-center bg-green-600 text-white py-8 rounded-lg">
           <h2 className="text-2xl font-bold mb-4">
             Khám phá các ưu đãi mới nhất!
           </h2>
@@ -243,7 +243,7 @@ const NewsPage = () => {
           </p>
           <Link
             to="/products"
-            className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
+            className="inline-block bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
           >
             Mua sắm ngay
           </Link>
