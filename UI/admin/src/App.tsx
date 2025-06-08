@@ -1,6 +1,7 @@
 import { Admin, Resource, CustomRoutes } from "react-admin";
 import { Route } from "react-router-dom";
 import { Layout } from "./Layout";
+import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -20,6 +21,7 @@ import OrderShow from "./component/Order/OrderShow";
 import { BlogPostCreate, BlogPostEdit, BlogPostList, BlogPostShow } from "./component/Blog/BlogPost";
 import { ContactList, ContactShow } from "./component/Contact/Contacts";
 import { ConfigList, ConfigCreate, ConfigEdit } from "./component/Config/Config";
+import { UserList } from "./component/Users/UserList";
 export const App = () => (
   <Admin authProvider={authProvider} layout={Layout} dataProvider={dataProvider} dashboard={Dashboard}>
     <CustomRoutes>
@@ -76,6 +78,11 @@ export const App = () => (
       edit={ConfigEdit}
       icon={SettingsIcon}
 
+    />
+    <Resource
+      name="users"
+      list={UserList}
+      icon={PeopleIcon}
     />
 
 

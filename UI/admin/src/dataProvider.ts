@@ -98,7 +98,7 @@ const httpClient = {
 export const dataProvider: DataProvider = {
   getList: async (resource: string, { pagination = {}, sort = {}, filter = {} }) => {
     const { page = 1, perPage = 25 } = pagination;
-    const defaultSortField = resource === 'orders' ? 'orderDate' : resource === 'contacts' ? 'contactId' : 'id';
+    const defaultSortField = resource === 'orders' ? 'orderDate' : resource === 'contacts' ? 'contactId' : resource === 'users' ? 'userId' : 'id';
     const { field = defaultSortField, order = 'ASC' } = sort;
 
     console.log('Resource:', resource);
@@ -119,11 +119,10 @@ export const dataProvider: DataProvider = {
     const query = {
       pageNumber: (page - 1).toString(),
       pageSize: perPage.toString(),
-      sortBy: field,
+      sortBy: resource === 'users' ? 'userId' : resource === 'orders' ? 'orderId' : field,
       sortOrder: order,
       ...filter,
     };
-
     let url: string;
     const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource;
     if (filter && filter.status && resource === 'contacts') {
@@ -137,9 +136,10 @@ export const dataProvider: DataProvider = {
     } else {
       if (resource === 'carts') {
         url = `${apiUrl}/admin/carts?${new URLSearchParams(query).toString()}`;
-
       } else if (resource === 'orders') {
         url = `${apiUrl}/admin/orders?${new URLSearchParams(query).toString()}`;
+      } else if (resource === 'users') {
+        url = `${apiUrl}/admin/users?${new URLSearchParams(query).toString()}`;
       } else {
         url = `${apiUrl}/public/${resourceEndpoint}?${new URLSearchParams(query).toString()}`;
       }
@@ -162,7 +162,7 @@ export const dataProvider: DataProvider = {
       data = response.json.content
         .filter((item: any) => item !== null && item !== undefined)
         .map((item: any) => ({
-          id: item[idField],
+          id: resource === 'users' ? item.userId : item[idField],
           ...item,
           image: item.image ? `${baseUrl}${item.image}` : null,
         }));
