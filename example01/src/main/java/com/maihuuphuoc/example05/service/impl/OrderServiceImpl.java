@@ -172,6 +172,13 @@ public class OrderServiceImpl implements OrderService {
     public void deleteOrder(Long orderId) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
+        System.out.println("Before delete: Order found with id: " + orderId);
         orderRepo.delete(order);
+        System.out.println("After delete: Order with id: " + orderId);
+        // Kiểm tra lại xem đơn hàng còn tồn tại không
+        if (orderRepo.findById(orderId).isPresent()) {
+            System.out.println("Order still exists after delete!");
+            throw new APIException("Failed to delete order with id: " + orderId);
+        }
     }
 }

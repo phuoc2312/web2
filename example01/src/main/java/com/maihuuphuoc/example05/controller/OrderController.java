@@ -74,7 +74,7 @@ public class OrderController {
         return new ResponseEntity<OrderDTO>(order, HttpStatus.OK);
     }
 
-    @DeleteMapping("/admin/orders/{id}")
+    @DeleteMapping("/public/orders/{id}")
     public ResponseEntity<String> deleteOrder(@PathVariable("id") Long orderId) {
         orderService.deleteOrder(orderId);
         return new ResponseEntity<>("Order with id: " + orderId + " deleted successfully!", HttpStatus.OK);

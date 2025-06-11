@@ -342,17 +342,20 @@ export const dataProvider: DataProvider = {
   ): Promise<DeleteResult<RecordType>> => {
     try {
       const resourceEndpoint = resource === 'BlogPosts' ? 'blogs' : resource === 'configs' ? 'config' : resource;
-      const url = `${apiUrl}/admin/${resourceEndpoint}/${params.id}`;
+      // Sử dụng endpoint public cho orders
+      const url = resource === 'orders'
+        ? `${apiUrl}/public/orders/${params.id}`
+        : `${apiUrl}/admin/${resourceEndpoint}/${params.id}`;
       await httpClient.delete(url);
       return {
         data: params.previousData as RecordType,
       };
     } catch (error) {
       console.error('API DELETE request failed:', error);
+
       throw new Error('Error deleting record');
     }
   },
-
   deleteMany: async <RecordType extends RaRecord = any>(
     resource: string,
     params: DeleteManyParams

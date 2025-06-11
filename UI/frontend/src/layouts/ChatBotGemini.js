@@ -447,7 +447,7 @@ const ChatBotGemini = () => {
 
             // 15. Câu hỏi không liên quan (gọi Gemini AI)
             const res = await axios.post(
-                'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAgCIH5TI_2GaNBzPRLI55Wk4VGWL84jpk',
+                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCI55aZyySyPx3inHEBKjf9jsvzO0D6_Sc',
                 {
                     contents: [{
                         parts: [{

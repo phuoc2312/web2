@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { 
+import {
     List,
     Datagrid,
     TextField,
@@ -10,7 +10,8 @@ import {
     ShowButton,
     FilterLiveSearch,
     usePermissions,
-    useRecordContext
+    useRecordContext,
+    DeleteButton
 } from 'react-admin';
 import { Stack, Chip, Typography, Box } from '@mui/material';
 import { LocalAtm, CreditCard } from '@mui/icons-material';
@@ -39,7 +40,7 @@ interface Order {
     orderItems: OrderItem[];
     orderDate: string;
     payment: Payment;
-    
+
     totalAmount: number;
     orderStatus: string;
 }
@@ -48,7 +49,7 @@ interface Order {
 const OrderStatusField = () => {
     const record = useRecordContext<Order>();
     if (!record) return null;
-    
+
     const statusColors = {
         'Order Accepted!': 'success',
         'Processing': 'info',
@@ -56,11 +57,11 @@ const OrderStatusField = () => {
         'Shipped': 'warning',
         'Delivered': 'secondary'
     };
-    
+
     return (
-        <Chip 
-            label={record.orderStatus} 
-            color={statusColors[record.orderStatus] || 'default'} 
+        <Chip
+            label={record.orderStatus}
+            color={statusColors[record.orderStatus] || 'default'}
             size="small"
         />
     );
@@ -70,7 +71,7 @@ const OrderStatusField = () => {
 const PaymentMethodField = () => {
     const record = useRecordContext<Order>();
     if (!record) return null;
-    
+
     return (
         <Stack direction="row" alignItems="center" gap={1}>
             {record.payment.paymentMethod === 'MOMO' ? (
@@ -89,7 +90,7 @@ const PaymentMethodField = () => {
 const OrderItemsField = () => {
     const record = useRecordContext<Order>();
     if (!record) return null;
-    
+
     return (
         <Box>
             {record.orderItems.map((item) => (
@@ -113,7 +114,7 @@ const OrderFilters = [
 
 const OrderList = () => {
     const { permissions } = usePermissions();
-    
+
     return (
         <List
             title="Order List"
@@ -123,54 +124,55 @@ const OrderList = () => {
         >
             <Datagrid rowClick="show">
                 <TextField source="orderId" label="Mã đơn hàng" />
-                <DateField 
-                    source="orderDate" 
-                    label="Ngày đặt" 
-                    locales="vi-VN" 
-                    options={{ 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit' 
-                    }} 
+                <DateField
+                    source="orderDate"
+                    label="Ngày đặt"
+                    locales="vi-VN"
+                    options={{
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }}
                 />
-                
+
                 <TextField source="email" label="Email khách hàng" />
-                
+
                 <FunctionField
                     label="Sản phẩm"
                     render={(record: Order) => <OrderItemsField record={record} />}
                 />
-                
-                <NumberField 
-                    source="totalAmount" 
-                    label="Tổng tiền" 
-                    options={{ 
-                        style: 'currency', 
-                        currency: 'VND' 
+
+                <NumberField
+                    source="totalAmount"
+                    label="Tổng tiền"
+                    options={{
+                        style: 'currency',
+                        currency: 'VND'
                     }}
                     locales="vi-VN"
                 />
-                
+
                 <FunctionField
                     label="Trạng thái"
                     render={(record: Order) => <OrderStatusField record={record} />}
                 />
-                
+
                 <FunctionField
                     label="Thanh toán"
                     render={(record: Order) => (
                         <Stack direction="row" spacing={1} alignItems="center">
                             <PaymentMethodField record={record} />
-                            <Chip 
-                                label={record.payment?.paymentId ? 'Đã thanh toán' : 'Chưa thanh toán'} 
-                                color={record.payment?.paymentId ? 'success' : 'error'} 
+                            <Chip
+                                label={record.payment?.paymentId ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                                color={record.payment?.paymentId ? 'success' : 'error'}
                                 size="small"
                             />
                         </Stack>
                     )}
                 />
-                
+
                 {permissions === 'ADMIN' && <EditButton />}
+                <DeleteButton />
                 <ShowButton />
             </Datagrid>
         </List>

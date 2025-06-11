@@ -99,7 +99,16 @@
     		<artifactId>modelmapper</artifactId>
     		<version>3.1.0</version> 
 		</dependency>
-		
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.5.14</version>
+		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20250107</version>
+		</dependency>
 		
 	</dependencies>
 

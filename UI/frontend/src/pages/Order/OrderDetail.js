@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 const OrderDetail = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isCanceling, setIsCanceling] = useState(false);
     const { orderId } = useParams();
     const navigate = useNavigate();
     const API_URL = 'http://localhost:8080/api/public';
@@ -41,11 +42,48 @@ const OrderDetail = () => {
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('authEmail');
                 navigate('/login');
-            } else {
-                toast.error('Không thể tải chi tiết đơn hàng');
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCancelOrder = async () => {
+
+
+        try {
+            setIsCanceling(true);
+            const token = localStorage.getItem('authToken');
+
+            if (!token) {
+                toast.error('Vui lòng đăng nhập lại');
+                navigate('/login');
+                return;
+            }
+
+            await axios.delete(`${API_URL}/orders/${orderId}`, {
+                headers: {
+                    'Accept': '*/*',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            toast.success('Đơn hàng đã được hủy thành công!');
+
+            // Reload trang sau khi hủy thành công
+            window.location.reload();
+        } catch (error) {
+            console.error('Error canceling order:', error);
+            if (error.response?.status === 401) {
+                toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authEmail');
+                navigate('/login');
+            } else {
+                toast.error(error.response?.data?.message || 'Không thể hủy đơn hàng');
+            }
+        } finally {
+            setIsCanceling(false);
         }
     };
 
@@ -57,7 +95,6 @@ const OrderDetail = () => {
         );
     }
 
-    
     if (!order) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -79,12 +116,26 @@ const OrderDetail = () => {
             <div className="max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">Chi tiết đơn hàng #{order.orderId}</h1>
-                    <Link
-                        to="/profile"
-                        className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    >
-                        Quay lại
-                    </Link>
+                    <div className="flex space-x-2">
+                        {order.orderStatus !== 'Cancelled' && (
+                            <button
+                                onClick={handleCancelOrder}
+                                disabled={isCanceling}
+                                className={`inline-flex items-center px-4 py-2 rounded-md transition-colors ${isCanceling
+                                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                            >
+                                {isCanceling ? 'Đang hủy...' : 'Hủy đơn hàng'}
+                            </button>
+                        )}
+                        <Link
+                            to="/profile"
+                            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                            Quay lại
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -111,11 +162,12 @@ const OrderDetail = () => {
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500">Trạng thái</h3>
                                 <span
-                                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        order.orderStatus === 'Order Accepted'
-                                            ? 'bg-green-100 text-green-800'
+                                    className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${order.orderStatus === 'Order Accepted'
+                                        ? 'bg-green-100 text-green-800'
+                                        : order.orderStatus === 'Cancelled'
+                                            ? 'bg-red-100 text-red-800'
                                             : 'bg-yellow-100 text-yellow-800'
-                                    }`}
+                                        }`}
                                 >
                                     {order.orderStatus}
                                 </span>
